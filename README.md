@@ -6,14 +6,8 @@ de Amsterdam-App
 
 # Docker build
 
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+    docker build -t iprox-scraper -f build-docker-image/Dockerfile .
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+# Execute
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+    docker run -e BACKEND_HOST=<FQDN or ip-address> iprox-scraper 
