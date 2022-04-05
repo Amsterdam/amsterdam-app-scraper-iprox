@@ -8,7 +8,9 @@ from GenericFunctions.Logger import Logger
 
 
 if __name__ == '__main__':
+    # Setup logger
     logger = Logger()
+
     # Get environment parameters: BACKEND host and port
     backend_host = os.getenv('BACKEND_HOST', 'api-server')
     backend_port = int(os.getenv('BACKEND_PORT', 8000))

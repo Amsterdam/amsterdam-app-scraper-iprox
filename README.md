@@ -12,9 +12,11 @@ Clone this project and in the root folder of this project run the command below 
 You can start the Iprox scraper with the command below. If the scraper cannot find the API server within 60 seconds the
 container stops. Once the whole scraper process is done, this container will stop too. Hence, the docker image is ment
 to run as a cron-job. You can point to an API server of your choosing by passing the environment parameter
-BACKEND_HOST with the docker run command. This can either be a fully qualified domain name or ip-address.
+BACKEND_HOST with the docker run command. This can either be a fully qualified domain name or ip-address. The ingest
+routes on the API-server are protected via a http header token. A secret for creating this header (and accepting it on
+the API-server) must be given in the docker environment parameter AES_SECRET
 
-    docker run -e BACKEND_HOST=<FQDN or ip-address> iprox-scraper 
+    docker run -e BACKEND_HOST=<FQDN or ip-address> -e AES_SECRET='<API-server secret>' iprox-scraper 
 
 # API ingest routes
 The Iprox scraper make use of the following ingestion routes on the API server
@@ -29,3 +31,6 @@ The Iprox scraper make use of the following ingestion routes on the API server
     /api/v1/ingest/news
 
     /api/v1/ingest/garbagecollector
+
+# Dependencies
+This software depend on the API-server. You can find the code for this software at https://github.com/Amsterdam/amsterdam-app-backend
