@@ -118,7 +118,8 @@ class IproxStadsloket:
         self.logger = Logger()
         self.host = backend_host
         self.port = backend_port
-        self.header = headers
+        self.headers = headers
+        self.raw_data = {}
         self.page = {}
         self.url = '{url}?AppIdt=app-pagetype&reload=true'.format(url=url)
         self.identifier = identifier
@@ -136,10 +137,7 @@ class IproxStadsloket:
         ]
 
     def get_data(self):
-        """
-        request data from IPROX-end-point
-
-        :return: void
+        """ request data from IPROX-end-point
         """
         try:
             result = requests.get(self.url)
@@ -237,7 +235,7 @@ class IproxStadsloket:
 
     def save(self):
         url = 'http://{host}:{port}/api/v1/ingest/cityoffice'.format(host=self.host, port=self.port)
-        result = requests.post(url, headers=self.header, json=json.dumps(self.details))
+        result = requests.post(url, headers=self.headers, json=json.dumps(self.details))
         if result.status_code != 200:
             self.logger.error(result.text)
 

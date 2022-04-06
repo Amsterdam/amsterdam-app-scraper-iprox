@@ -8,21 +8,21 @@ class IsReachable:
         self.backend_host = backend_host
         self.backend_port = backend_port
         self.logger = Logger()
+        self.timeout = 60
 
     def check(self):
         once = True
-        print('Check if {host}:{port} is reachable: '.format(host=self.backend_host, port=self.backend_port), end='')
-        for i in range(60):
+        for i in range(self.timeout):
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.settimeout(1)
                     s.connect((self.backend_host, self.backend_port))
-                print('YES')
+                print('{host}:{port} is reachable'.format(host=self.backend_host, port=self.backend_port))
                 return True
             except Exception as error:
                 if once is True:
                     self.logger.error(error)
                     once = False
                 time.sleep(1)
-        print('NO')
+        print('{host}:{port} is unreachable'.format(host=self.backend_host, port=self.backend_port))
         return False

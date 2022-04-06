@@ -8,7 +8,7 @@ from GenericFunctions.Logger import Logger
 
 
 class Image:
-    """ This class is a multi-threaded image fetcher. I has a queue from which workers (threads) fetch a job.
+    """ This class is a multi-threaded image fetcher. It has a queue from which workers (threads) fetch a job.
 
         A job looks like:
         {
@@ -93,4 +93,3 @@ class Image:
             self.logger.info(self.threads[key]['result'])
 
         self.logger.info('Processing done in {elapsed:.2f} seconds'.format(elapsed=time.time() - now))
-
