@@ -102,13 +102,13 @@ class IproxStadsloketten:
     def save(self):
         # Save city contact
         url = 'http://{host}:{port}/api/v1/ingest/citycontact'.format(host=self.host, port=self.port)
-        result = requests.post(url, headers=self.header, json=json.dumps(self.sections))
+        result = requests.post(url, headers=self.header, json=self.sections)
         if result.status_code != 200:
             self.logger.error(result.text)
 
         # Save city offices
         url = 'http://{host}:{port}/api/v1/ingest/cityoffices'.format(host=self.host, port=self.port)
-        result = requests.post(url, headers=self.header, json=json.dumps(self.stadsloketten))
+        result = requests.post(url, headers=self.header, json=self.stadsloketten)
         if result.status_code != 200:
             self.logger.error(result.text)
 
@@ -235,7 +235,7 @@ class IproxStadsloket:
 
     def save(self):
         url = 'http://{host}:{port}/api/v1/ingest/cityoffice'.format(host=self.host, port=self.port)
-        result = requests.post(url, headers=self.headers, json=json.dumps(self.details))
+        result = requests.post(url, headers=self.headers, json=self.details)
         if result.status_code != 200:
             self.logger.error(result.text)
 

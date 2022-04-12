@@ -52,7 +52,7 @@ class Image:
         extension = item['filename'].split('.')[-1]
         item['mime_type'] = 'image/{extension}'.format(extension=extension)
         url = 'http://{host}:{port}/api/v1/ingest/image'.format(host=self.host, port=self.port)
-        result = requests.post(url, headers=self.headers, json=json.dumps(item))
+        result = requests.post(url, headers=self.headers, json=item)
         if result.status_code != 200:
             self.logger.error(result.text)
 

@@ -193,7 +193,7 @@ class IproxProject:
 
             # Get district name and identifier
             if filtered_dicts[i].get('Kenmerken', None) is not None and filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
-                self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('SelItmIdt'))
+                self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
                 self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
 
     def set_text_result(self, data, app_category):
@@ -221,8 +221,9 @@ class IproxProject:
 
         for i in range(0, len(filtered_results), 1):
             if filtered_results[i].get('Eigenschappen', None):
-                timeline_items.append({'Eigenschappen': filtered_results[i].get('Eigenschappen'),
-                                 'Instellingen': filtered_results[i + 1].get('Instellingen')})
+                timeline_items.append({
+                    'Eigenschappen': filtered_results[i].get('Eigenschappen'),
+                    'Instellingen': filtered_results[i + 1].get('Instellingen')})
         self.set_timeline(gegevens, inhoud, timeline_items)
 
     def set_timeline(self, gegevens, inhoud, timeline_items):
@@ -238,25 +239,24 @@ class IproxProject:
             'items': []
         }
         for timeline_item in timeline_items:
-            item = {}
-            for eigenschap in timeline_item.get('Eigenschappen', []):
-                if eigenschap.get('Nam', None) == 'Titel':
-                    item['title'] = {
-                        'text': TextSanitizers.strip_html(eigenschap.get('Wrd')),
-                        'html': eigenschap.get('Wrd')
-                    }
-                elif eigenschap.get('Nam', None) == 'Inleiding':
-                    item['content'] = {
-                        'text': TextSanitizers.strip_html(eigenschap.get('Txt')),
-                        'html': eigenschap.get('Txt')
-                    }
+            for key in timeline_item:
+                item = {}
 
-            for instelling in timeline_item.get('Instellingen', []):
-                if instelling.get('Nam', None) == 'Status':
-                    item['progress'] = instelling.get('SelWrd', '')
-                if instelling.get('Nam', None) == 'Subitems initieel ingeklapt':
-                    item['collapsed'] = bool(int(instelling.get('Wrd')))
-            timeline['items'].append(item)
+                if timeline_item.get(key, {}).get('Nam', None) == 'Titel':
+                    item['title'] = {
+                        'text': TextSanitizers.strip_html(timeline_item.get(key, {}).get('Wrd')),
+                        'html': timeline_item.get(key, {}).get('Wrd')
+                    }
+                elif timeline_item.get(key, {}).get('Nam', None) == 'Inleiding':
+                    item['content'] = {
+                        'text': TextSanitizers.strip_html(timeline_item.get(key, {}).get('Txt')),
+                        'html': timeline_item.get(key, {}).get('Txt')
+                    }
+                elif timeline_item.get(key, {}).get('Nam', None) == 'Status':
+                    item['progress'] = timeline_item.get(key, {}).get('SelWrd', '')
+                elif timeline_item.get(key, {}).get('Nam', None) == 'Subitems initieel ingeklapt':
+                    item['collapsed'] = bool(int(timeline_item.get(key, {}).get('Wrd')))
+                timeline['items'].append(item)
         self.details['body']['timeline'] = timeline
 
     def get_timeline(self, url):

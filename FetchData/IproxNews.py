@@ -95,7 +95,7 @@ class IproxNews:
                     'mime_type': mime_type,
                     'data': base64.b64encode(asset_result.content)
                 }
-                result_api_server_post = requests.post(url, headers=self.headers, json=json.dumps(payload))
+                result_api_server_post = requests.post(url, headers=self.headers, json=payload)
                 if result_api_server_post.status_code != 200:
                     self.logger.error(result_api_server_post.text)
 
@@ -221,7 +221,7 @@ class IproxNews:
 
     def save_news_item(self, news_item_data):
         url = 'http://{host}:{port}/api/v1/ingest/news'.format(host=self.backend_host, port=self.backend_port)
-        result = requests.post(url, headers=self.headers, json=json.dumps(news_item_data))
+        result = requests.post(url, headers=self.headers, json=news_item_data)
         if result.status_code != 200:
             self.logger.error(result.text)
 

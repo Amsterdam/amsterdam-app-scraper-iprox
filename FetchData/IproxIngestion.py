@@ -60,7 +60,7 @@ class IproxIngestion:
 
             # Send data to API-server
             url = 'http://{host}:{port}/api/v1/ingest/project'.format(host=self.backend_host, port=self.backend_port)
-            result = requests.post(url, headers=self.headers, json=json.dumps(fpd.details))
+            result = requests.post(url, headers=self.headers, json=fpd.details)
             if result.status_code != 200:
                 self.logger.error(result.text)
                 return None
@@ -99,7 +99,7 @@ class IproxIngestion:
                     item['images'] = result['images']
                     item['district_id'] = result['district_id']
                     item['district_name'] = result['district_name']
-                    result = requests.post(url, headers=self.headers, json=json.dumps(item))
+                    result = requests.post(url, headers=self.headers, json=item)
                     if result.status_code != 200:
                         self.logger.error(result.text)
                         return
@@ -111,7 +111,7 @@ class IproxIngestion:
                         new += 1
                 else:
                     payload = {'identifier': item.get('identifier')}
-                    result = requests.delete(url, headers=self.headers, json=json.dumps(payload))
+                    result = requests.delete(url, headers=self.headers, json=payload)
                     if result.status_code != 200:
                         self.logger.error(result.text)
                     else:

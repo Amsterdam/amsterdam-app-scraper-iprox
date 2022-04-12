@@ -28,7 +28,7 @@ def mocked_requests_post(*args, **kwargs):
             return self.json_data
 
     if kwargs['headers']['test'] == 'test_fetch_image':
-        data = json.loads(kwargs['json'])
+        data = kwargs['json']
         if data.get('filename', None) == 'mock0.jpg':
             return MockResponse(200, json_data={'status': True, 'result': True})
         if data.get('filename', None) == 'fail_saving.jpg':
@@ -70,7 +70,7 @@ def mocked_requests_get(*args, **kwargs):
         return MockResponse(200)
     elif args[0] == 'invalid_url':
         return MockResponse(404)
-    elif args[0] == 'invalid_json_response?AppIdt=app-pagetype&reload=true':
+    elif args[0] == 'empty_json_response?AppIdt=app-pagetype&reload=true':
         return MockResponse(200, json_data={})
     elif args[0] == 'valid_json_response?AppIdt=app-pagetype&reload=true':
         return MockResponse(200, json_data={'item': {'page': {'pagetype': 'mock'}}})
@@ -81,6 +81,12 @@ def mocked_requests_get(*args, **kwargs):
     elif args[0] == 'https://www.amsterdam.nl/get?new_json=true&pager_rows=1000':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.iprox_projects)
+    elif args[0] == 'https://mock_nieuws/?new_json=true':
+        test_data = TestData()
+        return MockResponse(200, json_data=test_data.news_data)
+    elif args[0] == 'https://mock-timeline?AppIdt=app-pagetype&reload=true':
+        test_data = TestData()
+        return MockResponse(200, json_data=test_data.timeline_raw)
 
 
 class MockThread(threading.Thread):
@@ -196,3 +202,8 @@ def iprox_stadsloket_scraper_images(*args, **kwargs):
         def __init__(self, *args, **kwargs):
             self.queue = Queue()
     return Scraper()
+
+
+def iprox_filter(*args, **kwargs):
+    mock_data = TestData()
+    return mock_data.iprox_project_detail
