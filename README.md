@@ -1,7 +1,7 @@
 # Iprox Scraper
 The Iprox system feeds content to the https://amsterdam.nl site. This content can also be retrieved in an obscure 
-recursive json format. The Iprox scraper reads this json and transforms it into a suitable format for the Amsterdam-App.
-The content is ingested into the Amsterdam-App-Backend (API server) via REST calls
+recursive json format. The Iprox scraper reads this json and transforms it into a predictable and reliable data format.
+The transformed data can be ingested in a backend of your choosing. See API ingest routes below.
 
 # Setup your development environment
 Clone this project and in the root folder of this project run the command below to setup your development environment
@@ -24,29 +24,40 @@ Clone this project and in the root folder of this project run the command below 
     docker build -t iprox-scraper -f build-docker-image/Dockerfile .
 
 # Execute
-You can start the Iprox scraper with the command below. If the scraper cannot find the API server within 60 seconds the
-container stops. Once the whole scraper process is done, this container will stop too. Hence, the docker image is ment
-to run as a cron-job. You can point to an API server of your choosing by passing the environment parameter
-BACKEND_HOST with the docker run command. This can either be a fully qualified domain name or ip-address. The ingest
-routes on the API-server are protected via a http header token. A secret for creating this header (and accepting it on
-the API-server) must be given in the docker environment parameter AES_SECRET
+You can start the Iprox scraper with the command below. If the scraper cannot find the TARGET server within 60 seconds 
+the container stops. Once the whole scraper process is done, this container will stop too. Hence, the docker image is 
+meant to run as a scheduled job, for example using a kubernetes CronJob resource 
+(https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/ ) 
 
-    docker run -e BACKEND_HOST=<FQDN or ip-address> -e AES_SECRET='<API-server secret>' iprox-scraper 
+You can point to an TARGET server of your choosing by passing the environment parameter
+TARGET with the docker run command. This can either be a fully qualified domain name or ip-address. You can also pass
+a TARGET-PORT parameter. The ingestion routes on the API-server are protected via a http header token. A secret for 
+creating this header (and accepting it on the TARGET) must be given in the docker environment parameter AES_SECRET
+
+    AES_SECRET: A shared secret (required)
+    TARGET: FQDN or ip address of the recieving end (default: api-server)
+    TARGET_PORT: The tcp port on the recieving end (default: 8000)
+    GARBAGE_COLLECT: boolean, enable garbage collecting on recieving end (default: True)
+    BASE_PATH: The prepended path for each API on the recieving end (default: /api/v1/ingest) 
+
+    docker run -e TARGET=<FQDN or ip-address> TARGET_PORT=<int> -e AES_SECRET='<API-server secret>' iprox-scraper 
 
 # API ingest routes
-The Iprox scraper make use of the following ingestion routes on the API server
+The Iprox scraper make use of the following ingestion routes on the TARGET server. All data is JSON formatted and image
+data is base64 encoded. BASE_PATH is set via the environment parameter passed to the Docker container and defaults to
+'/api/v1/ingest'
 
-    /api/v1/ingest/image
-    /api/v1/ingest/citycontact
-    /api/v1/ingest/cityoffice
-    /api/v1/ingest/cityoffices
+    <BASE_PATH>/image            
+    <BASE_PATH>/citycontact
+    <BASE_PATH>/cityoffice
+    <BASE_PATH>/cityoffices
 
-    /api/v1/ingest/project
-    /api/v1/ingest/projects
-    /api/v1/ingest/news
+    <BASE_PATH>/project
+    <BASE_PATH>/projects
+    <BASE_PATH>/news
 
-    /api/v1/ingest/garbagecollector
+    <BASE_PATH>/garbagecollector
 
 # Dependencies
-This software depends on the API-server. You can find the code for this software at 
-https://github.com/Amsterdam/amsterdam-app-backend
+This software works in conjunction with https://github.com/Amsterdam/amsterdam-app-backend as a TARGET, but this can
+be any TARGET of your choosing. 

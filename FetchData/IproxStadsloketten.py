@@ -12,10 +12,11 @@ class IproxStadsloketten:
     """ Fetch all Stadsloket details from IPROX-endpoint and convert the data into a suitable format. The format is
         described in: amsterdam_app_api.models.Stadsloket
     """
-    def __init__(self, backend_host='api-server', backend_port=8000, headers=dict):
+    def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.logger = Logger()
         self.host = backend_host
         self.port = backend_port
+        self.base_path = base_path
         self.header = headers
         self.url = 'https://www.amsterdam.nl/contact/?AppIdt=app-pagetype&reload=true'
         self.raw_data = dict()
@@ -101,23 +102,24 @@ class IproxStadsloketten:
 
     def save(self):
         # Save city contact
-        url = 'http://{host}:{port}/api/v1/ingest/citycontact'.format(host=self.host, port=self.port)
+        url = 'http://{host}:{port}{base_path}/citycontact'.format(host=self.host, port=self.port, base_path=self.base_path)
         result = requests.post(url, headers=self.header, json=self.sections)
         if result.status_code != 200:
             self.logger.error(result.text)
 
         # Save city offices
-        url = 'http://{host}:{port}/api/v1/ingest/cityoffices'.format(host=self.host, port=self.port)
+        url = 'http://{host}:{port}{base_path}/cityoffices'.format(host=self.host, port=self.port, base_path=self.base_path)
         result = requests.post(url, headers=self.header, json=self.stadsloketten)
         if result.status_code != 200:
             self.logger.error(result.text)
 
 
 class IproxStadsloket:
-    def __init__(self, url, identifier, backend_host='api-server', backend_port=8000, headers=dict):
+    def __init__(self, url, identifier, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.logger = Logger()
         self.host = backend_host
         self.port = backend_port
+        self.base_path = base_path
         self.headers = headers
         self.raw_data = {}
         self.page = {}
@@ -234,18 +236,19 @@ class IproxStadsloket:
         self.save()
 
     def save(self):
-        url = 'http://{host}:{port}/api/v1/ingest/cityoffice'.format(host=self.host, port=self.port)
+        url = 'http://{host}:{port}{base_path}/cityoffice'.format(host=self.host, port=self.port, base_path=self.base_path)
         result = requests.post(url, headers=self.headers, json=self.details)
         if result.status_code != 200:
             self.logger.error(result.text)
 
 
 class Scraper:
-    def __init__(self, backend_host='api-server', backend_port=8000, headers=dict):
+    def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.backend_host = backend_host
         self.backend_port = backend_port
+        self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host, backend_port=self.backend_port, headers=self.headers)
+        self.image = Image(backend_host=backend_host, backend_port=self.backend_port, base_path=base_path, headers=self.headers)
 
     def get_images(self, details):
         # Add image objects to the download queue
@@ -256,7 +259,7 @@ class Scraper:
 
     def run(self):
         # Get main stadsloket info (contact info and sub_pages urls)
-        isl = IproxStadsloketten(backend_host=self.backend_host, backend_port=self.backend_port, headers=self.headers)
+        isl = IproxStadsloketten(backend_host=self.backend_host, backend_port=self.backend_port, base_path=self.base_path, headers=self.headers)
         isl.get_data()
         isl.parse_data()
 
@@ -264,7 +267,7 @@ class Scraper:
         for item in isl.stadsloketten:
             url = item['url']
             identifier = item['identifier']
-            isl_sub = IproxStadsloket(url, identifier, backend_host=self.backend_host, backend_port=self.backend_port, headers=self.headers)
+            isl_sub = IproxStadsloket(url, identifier, backend_host=self.backend_host, backend_port=self.backend_port, base_path=self.base_path, headers=self.headers)
             isl_sub.get_data()
             isl_sub.parse_data()
             self.get_images(isl_sub.details)

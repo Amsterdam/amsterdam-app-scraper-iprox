@@ -24,13 +24,14 @@ class IproxIngestion:
         are possibly due for garbage collecting. See details in class IproxGarbageCollector.
     """
 
-    def __init__(self, backend_host='api-server', backend_port=8000, headers=dict):
+    def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.logger = Logger()
         self.backend_host = backend_host
         self.backend_port = backend_port
+        self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host, backend_port=backend_port, headers=headers)
-        self.news = IproxNews(backend_host=backend_host, backend_port=backend_port, headers=headers)
+        self.image = Image(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
+        self.news = IproxNews(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
         self.paths = {
             'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
             'kade': '/projecten/kademuren/maatregelen-vernieuwing/'
@@ -59,7 +60,9 @@ class IproxIngestion:
             fpd.details['project_type'] = project_type
 
             # Send data to API-server
-            url = 'http://{host}:{port}/api/v1/ingest/project'.format(host=self.backend_host, port=self.backend_port)
+            url = 'http://{host}:{port}{base_path}/project'.format(host=self.backend_host,
+                                                                   port=self.backend_port,
+                                                                   base_path=self.base_path)
             result = requests.post(url, headers=self.headers, json=fpd.details)
             if result.status_code != 200:
                 self.logger.error(result.text)
@@ -83,7 +86,9 @@ class IproxIngestion:
         fpa.get_data()
         fpa.parse_data()
 
-        url = 'http://{host}:{port}/api/v1/ingest/projects'.format(host=self.backend_host, port=self.backend_port)
+        url = 'http://{host}:{port}{base_path}/projects'.format(host=self.backend_host,
+                                                                port=self.backend_port,
+                                                                base_path=self.base_path)
 
         updated = new = failed = 0
         for item in fpa.parsed_data:

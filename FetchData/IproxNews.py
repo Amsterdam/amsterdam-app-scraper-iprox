@@ -20,12 +20,13 @@ class IproxNews:
         {'identifier': md5hash, 'source_identifier': md5hash, 'url': string}
     """
 
-    def __init__(self, backend_host='api-server', backend_port=8000, headers=dict):
+    def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.logger = Logger()
         self.backend_host = backend_host
         self.backend_port = backend_port
+        self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host, backend_port=backend_port, headers=headers)
+        self.image = Image(backend_host=backend_host, backend_port=backend_port, base_path=self.base_path, headers=headers)
         self.sanitizer = TextSanitizers()
         self.hash = Hashing()
         self.queue = Queue()
@@ -84,7 +85,7 @@ class IproxNews:
 
     def get_set_asset(self, identifier, mime_type, url):
         # Check if we already have this asset on API Server, Prevent API-bandwidth saturation
-        url = 'http://{host}:{port}/api/v1/ingest/asset'.format(host=self.backend_host, port=self.backend_port)
+        url = 'http://{host}:{port}{base_path}/asset'.format(host=self.backend_host, port=self.backend_port, base_path=self.base_path)
         result_api_server_get = requests.get(url, headers=self.headers, params={'identifier': identifier}).json()
         if result_api_server_get['status'] is False:
             asset_result = requests.get(url)
@@ -220,7 +221,7 @@ class IproxNews:
         return news_item_data
 
     def save_news_item(self, news_item_data):
-        url = 'http://{host}:{port}/api/v1/ingest/news'.format(host=self.backend_host, port=self.backend_port)
+        url = 'http://{host}:{port}{base_path}/news'.format(host=self.backend_host, port=self.backend_port, base_path=self.base_path)
         result = requests.post(url, headers=self.headers, json=news_item_data)
         if result.status_code != 200:
             self.logger.error(result.text)

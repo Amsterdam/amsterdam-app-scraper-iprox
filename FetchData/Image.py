@@ -1,5 +1,4 @@
 import base64
-import json
 import time
 import requests
 import threading
@@ -23,10 +22,11 @@ class Image:
         and save the result to the database.
     """
 
-    def __init__(self, backend_host='api-server', backend_port=8000, headers=dict):
+    def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.logger = Logger()
         self.host = backend_host
         self.port = backend_port
+        self.base_path = base_path
         self.headers = headers
         self.num_workers = 10
         self.queue = Queue()
@@ -51,7 +51,7 @@ class Image:
     def save_image(self, item):
         extension = item['filename'].split('.')[-1]
         item['mime_type'] = 'image/{extension}'.format(extension=extension)
-        url = 'http://{host}:{port}/api/v1/ingest/image'.format(host=self.host, port=self.port)
+        url = 'http://{host}:{port}{base_path}/image'.format(host=self.host, port=self.port, base_path=self.base_path)
         result = requests.post(url, headers=self.headers, json=item)
         if result.status_code != 200:
             self.logger.error(result.text)
@@ -65,7 +65,7 @@ class Image:
             item['identifier'] = item.pop('image_id')
 
             # Check if we already have this image on API Server, Prevent API-bandwidth saturation
-            url = 'http://{host}:{port}/api/v1/ingest/image'.format(host=self.host, port=self.port)
+            url = 'http://{host}:{port}{base_path}/image'.format(host=self.host, port=self.port, base_path=self.base_path)
             result = requests.get(url, headers=self.headers, params={'identifier': item['identifier']}).json()
 
             if result['status'] is False:
