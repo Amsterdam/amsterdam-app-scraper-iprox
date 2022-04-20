@@ -26,7 +26,7 @@ if __name__ == '__main__':
     token = AESCipher(str(uuid4()), os.getenv('AES_SECRET')).encrypt()
     headers = {'Accept': 'application/json', 'IngestAuthorization': token}
 
-    iprox_ingestion = IproxIngestion(backend_host=backend_host, backend_port=8000, base_path=base_path, headers=headers)
+    iprox_ingestion = IproxIngestion(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
     for project_type in ['brug', 'kade', 'stadsloket']:
         iprox_ingestion.start(project_type)
 
