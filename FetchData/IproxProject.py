@@ -30,7 +30,7 @@ class IproxProject:
                 'more-info': [],  # [{'text': '', 'html': '', 'title': ''}, ...],
                 'timeline': {}
             },
-            'coordinates': {'lon': float(), 'lat': float()},
+            'coordinates': {'lon': None, 'lat': None},
             'district_id': -1,
             'district_name': '',
             'images': [
