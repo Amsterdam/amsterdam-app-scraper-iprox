@@ -31,6 +31,7 @@ class IproxProject:
                 'timeline': {}
             },
             'coordinates': {'lon': None, 'lat': None},
+            'contacts': [], # [{'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}, ...]
             'district_id': -1,
             'district_name': '',
             'images': [
@@ -69,6 +70,8 @@ class IproxProject:
             'Blok',
             'Brondatum',
             'Coordinaten',
+            'Contacten',
+            'Contact',
             'Fotoshow',
             'Gegevens',
             'Inhoud',
@@ -195,6 +198,24 @@ class IproxProject:
             if filtered_dicts[i].get('Kenmerken', None) is not None and filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
                 self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
                 self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
+
+            if filtered_dicts[i].get('Contact', None) is not None:
+                self.set_contact(filtered_dicts[i]['Contact'])
+
+    def set_contact(self, data):
+        contact = {'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}
+        for i in range(0, len(data), 1):
+            if data[i].get('Nam') == 'Naam':
+                contact['name'] = data[i].get('Wrd', None)
+            if data[i].get('Nam') == 'Functie':
+                contact['position'] = data[i].get('Wrd', None)
+            if data[i].get('Nam') == 'E-mail':
+                contact['email'] = data[i].get('Src', None)
+            if data[i].get('Nam') == 'Telefoon':
+                contact['phone'] = data[i].get('Wrd', None)
+            if data[i].get('Nam') == 'Adres':
+                contact['address'] = data[i].get('Wrd', None)
+        self.details['contacts'].append(contact)
 
     def set_text_result(self, data, app_category):
         if data['html'] != '':
