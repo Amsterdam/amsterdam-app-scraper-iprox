@@ -192,7 +192,12 @@ class IproxProject:
             # Set Coordinates (if available).
             # Note: EPSG:4326 is an identifier of WGS84. WGS84 comprises a standard coordinate frame for the Earth
             if filtered_dicts[i].get('Coordinaten', None) is not None:
-                self.set_geo_data(filtered_dicts[i]['Coordinaten']['Txt']['geo']['json'])
+                if isinstance(filtered_dicts[i].get('Coordinaten'), list):
+                    for j in range(0, len(filtered_dicts[i].get('Coordinaten')), 1):
+                        if filtered_dicts[i]['Coordinaten'][j].get('Nam') == 'Coordinaten':
+                            self.set_geo_data(filtered_dicts[i]['Coordinaten'][j]['Txt']['geo']['json'])
+                else:
+                    self.set_geo_data(filtered_dicts[i]['Coordinaten']['Txt']['geo']['json'])
 
             # Get district name and identifier
             if filtered_dicts[i].get('Kenmerken', None) is not None and filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
