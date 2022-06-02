@@ -34,7 +34,8 @@ class IproxIngestion:
         self.news = IproxNews(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
         self.paths = {
             'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
-            'kade': '/projecten/kademuren/maatregelen-vernieuwing/'
+            'kade': '/projecten/kademuren/maatregelen-vernieuwing/',
+            'bouw-en-verkeer': '/projecten/overzicht/'
         }
 
     def get_images(self, fpd_details):
@@ -155,7 +156,7 @@ class IproxIngestion:
 
     def start(self, project_type):
         result = {}
-        if project_type in ['brug', 'kade']:
+        if project_type in ['brug', 'kade', 'bouw-en-verkeer']:
             result = self.get_set_projects(project_type)
 
         elif project_type in ['stadsloket']:

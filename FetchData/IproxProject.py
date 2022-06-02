@@ -30,7 +30,8 @@ class IproxProject:
                 'more-info': [],  # [{'text': '', 'html': '', 'title': ''}, ...],
                 'timeline': {}
             },
-            'coordinates': {'lon': float(), 'lat': float()},
+            'coordinates': {'lon': None, 'lat': None},
+            'contacts': [], # [{'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}, ...]
             'district_id': -1,
             'district_name': '',
             'images': [
@@ -69,6 +70,8 @@ class IproxProject:
             'Blok',
             'Brondatum',
             'Coordinaten',
+            'Contacten',
+            'Contact',
             'Fotoshow',
             'Gegevens',
             'Inhoud',
@@ -189,12 +192,35 @@ class IproxProject:
             # Set Coordinates (if available).
             # Note: EPSG:4326 is an identifier of WGS84. WGS84 comprises a standard coordinate frame for the Earth
             if filtered_dicts[i].get('Coordinaten', None) is not None:
-                self.set_geo_data(filtered_dicts[i]['Coordinaten']['Txt']['geo']['json'])
+                if isinstance(filtered_dicts[i].get('Coordinaten'), list):
+                    for j in range(0, len(filtered_dicts[i].get('Coordinaten')), 1):
+                        if filtered_dicts[i]['Coordinaten'][j].get('Nam') == 'Coordinaten':
+                            self.set_geo_data(filtered_dicts[i]['Coordinaten'][j]['Txt']['geo']['json'])
+                else:
+                    self.set_geo_data(filtered_dicts[i]['Coordinaten']['Txt']['geo']['json'])
 
             # Get district name and identifier
             if filtered_dicts[i].get('Kenmerken', None) is not None and filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
                 self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
                 self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
+
+            if filtered_dicts[i].get('Contact', None) is not None:
+                self.set_contact(filtered_dicts[i]['Contact'])
+
+    def set_contact(self, data):
+        contact = {'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}
+        for i in range(0, len(data), 1):
+            if data[i].get('Nam') == 'Naam':
+                contact['name'] = data[i].get('Wrd', None)
+            if data[i].get('Nam') == 'Functie':
+                contact['position'] = data[i].get('Wrd', None)
+            if data[i].get('Nam') == 'E-mail':
+                contact['email'] = data[i].get('Src', None)
+            if data[i].get('Nam') == 'Telefoon':
+                contact['phone'] = data[i].get('Wrd', None)
+            if data[i].get('Nam') == 'Adres':
+                contact['address'] = data[i].get('Wrd', None)
+        self.details['contacts'].append(contact)
 
     def set_text_result(self, data, app_category):
         if data['html'] != '':
