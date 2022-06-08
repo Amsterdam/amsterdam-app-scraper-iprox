@@ -72,6 +72,7 @@ class IproxProject:
             'Coordinaten',
             'Contacten',
             'Contact',
+            'Titel',
             'Fotoshow',
             'Gegevens',
             'Inhoud',
@@ -203,6 +204,27 @@ class IproxProject:
             if filtered_dicts[i].get('Kenmerken', None) is not None and filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
                 self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
                 self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
+
+            if filtered_dicts[i].get('Titel', None) is not None and isinstance(filtered_dicts[i]['Titel'], list):
+                result = {'title': '', 'html': '', 'text': ''}
+                app_category = None
+                for j in range(len(filtered_dicts[i]['Titel'])):
+                    # Get App category
+                    if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'App categorie':
+                        app_category = filtered_dicts[i]['Titel'][j].get('SelAka', None)
+
+                    # Get Title
+                    if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'Titel':
+                        result['title'] = filtered_dicts[i]['Titel'][j].get('Wrd', '')
+
+                    # Get Text
+                    if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'Toelichting':
+                        result['html'] = filtered_dicts[i]['Titel'][j].get('Txt', '')
+                        result['text'] = TextSanitizers.strip_html(filtered_dicts[i]['Titel'][j].get('Txt', ''))
+
+                # Only set text items is there is an app_category (eg. omit bogus items!)
+                if app_category is not None:
+                    self.set_text_result(result, app_category)
 
             if filtered_dicts[i].get('Contact', None) is not None:
                 self.set_contact(filtered_dicts[i]['Contact'])

@@ -22,6 +22,16 @@ Clone this project and in the root folder of this project run the command below 
 Clone this project and in the root folder of this project run the command below to build the docker image.
 
     docker build -t iprox-scraper -f build-docker-image/Dockerfile .
+    
+### Create container on m1 arch for amd64
+
+    docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.luscinia-solutions.com/backend-iprox:tst-latest
+    docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.luscinia-solutions.com/backend-iprox:prd-latest
+
+
+    docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.luscinia-solutions.com/backend-iprox:tst-latest
+    docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.luscinia-solutions.com/backend-iprox:prd-latest
+
 
 # Execute
 You can start the Iprox scraper with the command below. If the scraper cannot find the TARGET server within 60 seconds 
