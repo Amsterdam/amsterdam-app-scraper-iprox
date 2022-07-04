@@ -275,36 +275,48 @@ class IproxProject:
         self.set_timeline(gegevens, inhoud, timeline_items)
 
     def set_timeline(self, gegevens, inhoud, timeline_items):
+        def set(data):
+            _item = {}
+            if data.get('Nam', None) == 'Titel':
+                _item['title'] = {
+                    'text': TextSanitizers.strip_html(data.get('Wrd')),
+                    'html': data.get('Wrd')
+                }
+            elif data.get('Nam', None) == 'Inleiding':
+                _item['content'] = {
+                    'text': TextSanitizers.strip_html(data.get('Txt')),
+                    'html': data.get('Txt')
+                }
+            elif data.get('Nam', None) == 'Status':
+                _item['progress'] = data.get('SelWrd', '')
+            elif data.get('Nam', None) == 'Subitems initieel ingeklapt':
+                _item['collapsed'] = bool(int(data.get('Wrd')))
+            return _item
+
         timeline = {
             'title': {
-                'text': TextSanitizers.strip_html(gegevens.get('Txt')),
+                'text': TextSanitizers.strip_html(gegevens.get('Txt', '')),
                 'html': gegevens.get('Txt')
             },
             'intro': {
-                'text': TextSanitizers.strip_html(inhoud.get('Txt')),
+                'text': TextSanitizers.strip_html(inhoud.get('Txt', '')),
                 'html': inhoud.get('Txt')
             },
             'items': []
         }
         for timeline_item in timeline_items:
+            item = {}
             for key in timeline_item:
-                item = {}
-
-                if timeline_item.get(key, {}).get('Nam', None) == 'Titel':
-                    item['title'] = {
-                        'text': TextSanitizers.strip_html(timeline_item.get(key, {}).get('Wrd')),
-                        'html': timeline_item.get(key, {}).get('Wrd')
-                    }
-                elif timeline_item.get(key, {}).get('Nam', None) == 'Inleiding':
-                    item['content'] = {
-                        'text': TextSanitizers.strip_html(timeline_item.get(key, {}).get('Txt')),
-                        'html': timeline_item.get(key, {}).get('Txt')
-                    }
-                elif timeline_item.get(key, {}).get('Nam', None) == 'Status':
-                    item['progress'] = timeline_item.get(key, {}).get('SelWrd', '')
-                elif timeline_item.get(key, {}).get('Nam', None) == 'Subitems initieel ingeklapt':
-                    item['collapsed'] = bool(int(timeline_item.get(key, {}).get('Wrd')))
-                timeline['items'].append(item)
+                if isinstance(timeline_item[key], dict):
+                    result = set(timeline_item[key])
+                    for _key in result:
+                        item[_key] = result[_key]
+                if isinstance(timeline_item[key], list):
+                    for i in range(len(timeline_item[key])):
+                        result = set(timeline_item[key][i])
+                        for _key in result:
+                            item[_key] = result[_key]
+            timeline['items'].append(item)
         self.details['body']['timeline'] = timeline
 
     def get_timeline(self, url):
