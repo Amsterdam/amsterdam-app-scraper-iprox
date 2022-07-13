@@ -1,3 +1,4 @@
+import copy
 import json
 import requests
 from FetchData.IproxRecursion import IproxRecursion
@@ -94,7 +95,9 @@ class IproxProject:
             'Eigenschappen',
             'Instellingen',
             'Tijdlijn',
-            'Hoofditem'
+            'Hoofditem',
+            'Subitems',
+            'Subitem'
         ]
 
     def get_data(self):
@@ -261,61 +264,82 @@ class IproxProject:
         gegevens = dict()
         inhoud = dict()
 
+        timeline_item = {'Subitems': []}
         for i in range(0, len(filtered_results), 1):
             if filtered_results[i].get('Gegevens', None) is not None:
                 gegevens = filtered_results[i].get('Gegevens', {})
+
             if filtered_results[i].get('Inhoud', None) is not None:
                 inhoud = filtered_results[i].get('Inhoud', {})
 
-        for i in range(0, len(filtered_results), 1):
             if filtered_results[i].get('Eigenschappen', None):
-                timeline_items.append({
-                    'Eigenschappen': filtered_results[i].get('Eigenschappen'),
-                    'Instellingen': filtered_results[i + 1].get('Instellingen')})
+                # We found a new timeline sub-item, store former sub-item
+                if 'Eigenschappen' in timeline_item:
+                    timeline_items.append(copy.deepcopy(timeline_item))
+                    timeline_item = {'Subitems': []}
+                timeline_item['Eigenschappen'] = filtered_results[i].get('Eigenschappen')
+
+            if filtered_results[i].get('Instellingen', None):
+                timeline_item['Instellingen'] = filtered_results[i].get('Instellingen')
+
+            if filtered_results[i].get('Subitem', None):
+                timeline_item['Subitems'].append(filtered_results[i].get('Subitem', {}).get('veld', []))
+        else:
+            if 'Eigenschappen' in timeline_item:
+                timeline_items.append(copy.deepcopy(timeline_item))
+
         self.set_timeline(gegevens, inhoud, timeline_items)
 
     def set_timeline(self, gegevens, inhoud, timeline_items):
-        def set(data):
-            _item = {}
-            if data.get('Nam', None) == 'Titel':
-                _item['title'] = {
-                    'text': TextSanitizers.strip_html(data.get('Wrd')),
-                    'html': data.get('Wrd')
-                }
-            elif data.get('Nam', None) == 'Inleiding':
-                _item['content'] = {
-                    'text': TextSanitizers.strip_html(data.get('Txt')),
-                    'html': data.get('Txt')
-                }
-            elif data.get('Nam', None) == 'Status':
-                _item['progress'] = data.get('SelWrd', '')
-            elif data.get('Nam', None) == 'Subitems initieel ingeklapt':
-                _item['collapsed'] = bool(int(data.get('Wrd')))
-            return _item
+        def parse_subitems(subitems):
+            content = []
+            for subitem in subitems:
+                content_item = {'title': '', 'body': {'text': '', 'html': ''}}
+                for _item in subitem:
+                    if _item.get('Nam', '') == 'Titel':
+                        content_item['title'] = _item.get('Wrd', '')
+                    if _item.get('Nam', '') == 'Beschrijving':
+                        content_item['body']['text'] = TextSanitizers.strip_html(_item.get('Txt', ''))
+                        content_item['body']['html'] = _item.get('Txt', '')
+                content.append(content_item)
+            return content
+
+        def parse_instellingen(instellingen):
+            result = {'collapsed': True, 'progress': ''}
+            for _item in instellingen:
+                if _item.get('Nam', '') == 'Status':
+                    result['progress'] = _item.get('SelWrd', '')
+                if _item.get('Nam', '') == 'Hoofditem initieel ingeklapt':
+                    result['collapsed'] = bool(int(_item.get('Wrd', '1')))
+            return result
 
         timeline = {
             'title': {
                 'text': TextSanitizers.strip_html(gegevens.get('Txt', '')),
-                'html': gegevens.get('Txt')
+                'html': gegevens.get('Txt', '')
             },
             'intro': {
                 'text': TextSanitizers.strip_html(inhoud.get('Txt', '')),
-                'html': inhoud.get('Txt')
+                'html': inhoud.get('Txt', '')
             },
             'items': []
         }
         for timeline_item in timeline_items:
             item = {}
             for key in timeline_item:
-                if isinstance(timeline_item[key], dict):
-                    result = set(timeline_item[key])
-                    for _key in result:
-                        item[_key] = result[_key]
-                if isinstance(timeline_item[key], list):
-                    for i in range(len(timeline_item[key])):
-                        result = set(timeline_item[key][i])
-                        for _key in result:
-                            item[_key] = result[_key]
+                # Get content items
+                if key == 'Subitems':
+                    result = parse_subitems(timeline_item['Subitems'])
+                    item['content'] = result
+
+                if key == 'Eigenschappen' and timeline_item['Eigenschappen'].get('Nam') == 'Titel':
+                    item['title'] = timeline_item['Eigenschappen'].get('Wrd', '')
+
+                if key == 'Instellingen':
+                    result = parse_instellingen(timeline_item['Instellingen'])
+                    item['progress'] = result['progress']
+                    item['collapsed'] = result['collapsed']
+
             timeline['items'].append(item)
         self.details['body']['timeline'] = timeline
 
@@ -345,7 +369,7 @@ class IproxProject:
             self.logger.info('Found news item: {url}?new_json=true'.format(url=url))
             result = requests.get('{url}?new_json=true'.format(url=url))
             raw_data = result.json()
-            if isinstance(raw_data, list) and len(raw_data) > 0:
+            if isinstance(raw_data, list) and len(raw_data) > 0 and result.status_code == 200:
                 for i in range(0, len(raw_data), 1):
                     self.set_news_item(raw_data[i])
         except Exception as error:
