@@ -362,14 +362,16 @@ class IproxProject:
             'project_identifier': self.identifier,
             'url': data.get('feedid')
         }
-        self.details['news'].append(item)
+        result = requests.get('{url}?new_json=true'.format(url=data.get('feedid')))
+        if result.status_code == 200:
+            self.details['news'].append(item)
 
     def get_news_items(self, url):
         try:
             self.logger.info('Found news item: {url}?new_json=true'.format(url=url))
             result = requests.get('{url}?new_json=true'.format(url=url))
             raw_data = result.json()
-            if isinstance(raw_data, list) and len(raw_data) > 0 and result.status_code == 200:
+            if isinstance(raw_data, list) and len(raw_data) > 0:
                 for i in range(0, len(raw_data), 1):
                     self.set_news_item(raw_data[i])
         except Exception as error:
