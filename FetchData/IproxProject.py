@@ -1,3 +1,4 @@
+import copy
 import json
 import requests
 from FetchData.IproxRecursion import IproxRecursion
@@ -72,6 +73,7 @@ class IproxProject:
             'Coordinaten',
             'Contacten',
             'Contact',
+            'Titel',
             'Fotoshow',
             'Gegevens',
             'Inhoud',
@@ -93,7 +95,9 @@ class IproxProject:
             'Eigenschappen',
             'Instellingen',
             'Tijdlijn',
-            'Hoofditem'
+            'Hoofditem',
+            'Subitems',
+            'Subitem'
         ]
 
     def get_data(self):
@@ -204,6 +208,27 @@ class IproxProject:
                 self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
                 self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
 
+            if filtered_dicts[i].get('Titel', None) is not None and isinstance(filtered_dicts[i]['Titel'], list):
+                result = {'title': '', 'html': '', 'text': ''}
+                app_category = None
+                for j in range(len(filtered_dicts[i]['Titel'])):
+                    # Get App category
+                    if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'App categorie':
+                        app_category = filtered_dicts[i]['Titel'][j].get('SelAka', None)
+
+                    # Get Title
+                    if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'Titel':
+                        result['title'] = filtered_dicts[i]['Titel'][j].get('Wrd', '')
+
+                    # Get Text
+                    if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'Toelichting':
+                        result['html'] = filtered_dicts[i]['Titel'][j].get('Txt', '')
+                        result['text'] = TextSanitizers.strip_html(filtered_dicts[i]['Titel'][j].get('Txt', ''))
+
+                # Only set text items is there is an app_category (eg. omit bogus items!)
+                if app_category is not None:
+                    self.set_text_result(result, app_category)
+
             if filtered_dicts[i].get('Contact', None) is not None:
                 self.set_contact(filtered_dicts[i]['Contact'])
 
@@ -239,50 +264,83 @@ class IproxProject:
         gegevens = dict()
         inhoud = dict()
 
+        timeline_item = {'Subitems': []}
         for i in range(0, len(filtered_results), 1):
             if filtered_results[i].get('Gegevens', None) is not None:
                 gegevens = filtered_results[i].get('Gegevens', {})
+
             if filtered_results[i].get('Inhoud', None) is not None:
                 inhoud = filtered_results[i].get('Inhoud', {})
 
-        for i in range(0, len(filtered_results), 1):
             if filtered_results[i].get('Eigenschappen', None):
-                timeline_items.append({
-                    'Eigenschappen': filtered_results[i].get('Eigenschappen'),
-                    'Instellingen': filtered_results[i + 1].get('Instellingen')})
+                # We found a new timeline sub-item, store former sub-item
+                if 'Eigenschappen' in timeline_item:
+                    timeline_items.append(copy.deepcopy(timeline_item))
+                    timeline_item = {'Subitems': []}
+                timeline_item['Eigenschappen'] = filtered_results[i].get('Eigenschappen')
+
+            if filtered_results[i].get('Instellingen', None):
+                timeline_item['Instellingen'] = filtered_results[i].get('Instellingen')
+
+            if filtered_results[i].get('Subitem', None):
+                timeline_item['Subitems'].append(filtered_results[i].get('Subitem', {}).get('veld', []))
+        else:
+            if 'Eigenschappen' in timeline_item:
+                timeline_items.append(copy.deepcopy(timeline_item))
+
         self.set_timeline(gegevens, inhoud, timeline_items)
 
     def set_timeline(self, gegevens, inhoud, timeline_items):
+        def parse_subitems(subitems):
+            content = []
+            for subitem in subitems:
+                content_item = {'title': '', 'body': {'text': '', 'html': ''}}
+                for _item in subitem:
+                    if _item.get('Nam', '') == 'Titel':
+                        content_item['title'] = _item.get('Wrd', '')
+                    if _item.get('Nam', '') == 'Beschrijving':
+                        content_item['body']['text'] = TextSanitizers.strip_html(_item.get('Txt', ''))
+                        content_item['body']['html'] = _item.get('Txt', '')
+                content.append(content_item)
+            return content
+
+        def parse_instellingen(instellingen):
+            result = {'collapsed': True, 'progress': ''}
+            for _item in instellingen:
+                if _item.get('Nam', '') == 'Status':
+                    result['progress'] = _item.get('SelWrd', '')
+                if _item.get('Nam', '') == 'Hoofditem initieel ingeklapt':
+                    result['collapsed'] = bool(int(_item.get('Wrd', '1')))
+            return result
+
         timeline = {
             'title': {
-                'text': TextSanitizers.strip_html(gegevens.get('Txt')),
-                'html': gegevens.get('Txt')
+                'text': TextSanitizers.strip_html(gegevens.get('Txt', '')),
+                'html': gegevens.get('Txt', '')
             },
             'intro': {
-                'text': TextSanitizers.strip_html(inhoud.get('Txt')),
-                'html': inhoud.get('Txt')
+                'text': TextSanitizers.strip_html(inhoud.get('Txt', '')),
+                'html': inhoud.get('Txt', '')
             },
             'items': []
         }
         for timeline_item in timeline_items:
+            item = {}
             for key in timeline_item:
-                item = {}
+                # Get content items
+                if key == 'Subitems':
+                    result = parse_subitems(timeline_item['Subitems'])
+                    item['content'] = result
 
-                if timeline_item.get(key, {}).get('Nam', None) == 'Titel':
-                    item['title'] = {
-                        'text': TextSanitizers.strip_html(timeline_item.get(key, {}).get('Wrd')),
-                        'html': timeline_item.get(key, {}).get('Wrd')
-                    }
-                elif timeline_item.get(key, {}).get('Nam', None) == 'Inleiding':
-                    item['content'] = {
-                        'text': TextSanitizers.strip_html(timeline_item.get(key, {}).get('Txt')),
-                        'html': timeline_item.get(key, {}).get('Txt')
-                    }
-                elif timeline_item.get(key, {}).get('Nam', None) == 'Status':
-                    item['progress'] = timeline_item.get(key, {}).get('SelWrd', '')
-                elif timeline_item.get(key, {}).get('Nam', None) == 'Subitems initieel ingeklapt':
-                    item['collapsed'] = bool(int(timeline_item.get(key, {}).get('Wrd')))
-                timeline['items'].append(item)
+                if key == 'Eigenschappen' and timeline_item['Eigenschappen'].get('Nam') == 'Titel':
+                    item['title'] = timeline_item['Eigenschappen'].get('Wrd', '')
+
+                if key == 'Instellingen':
+                    result = parse_instellingen(timeline_item['Instellingen'])
+                    item['progress'] = result['progress']
+                    item['collapsed'] = result['collapsed']
+
+            timeline['items'].append(item)
         self.details['body']['timeline'] = timeline
 
     def get_timeline(self, url):
@@ -304,7 +362,9 @@ class IproxProject:
             'project_identifier': self.identifier,
             'url': data.get('feedid')
         }
-        self.details['news'].append(item)
+        result = requests.get('{url}?new_json=true'.format(url=data.get('feedid')))
+        if result.status_code == 200:
+            self.details['news'].append(item)
 
     def get_news_items(self, url):
         try:
