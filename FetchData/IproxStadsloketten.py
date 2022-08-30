@@ -83,7 +83,7 @@ class IproxStadsloketten:
                     if item.get('Nam') == 'Titel':
                         title = item.get('Wrd')
                     if item.get('Nam') == 'Tekst':
-                        html = item.get('Txt')
+                        html = TextSanitizers.rewrite_html(item.get('Txt'))
                         text = TextSanitizers.strip_html(html)
                 if None not in (title, html):
                     self.sections.append({'title': title, 'html': html, 'text': text})
@@ -175,7 +175,7 @@ class IproxStadsloket:
                 for item in _dict['Gegevens']:
                     if item.get('Nam') == 'Samenvatting':
                         self.details['info'] = {
-                            'html': item.get('Txt'),
+                            'html': TextSanitizers.rewrite_html(item.get('Txt')),
                             'text': TextSanitizers.strip_html(item.get('Txt'))
                         }
 
@@ -186,7 +186,7 @@ class IproxStadsloket:
                         self.details['title'] = item.get('Wrd')
                     if item.get('Nam') == 'Tekst':
                         self.details['address'] = {
-                            'html': item.get('Txt'),
+                            'html': TextSanitizers.rewrite_html(item.get('Txt')),
                             'text': TextSanitizers.strip_html(item.get('Txt'))
                         }
 
@@ -198,7 +198,7 @@ class IproxStadsloket:
                         title = item.get('Wrd')
                     if item.get('Nam') == 'Tekst':
                         text = TextSanitizers.strip_html(item.get('Txt'))
-                        html = item.get('Txt')
+                        html = TextSanitizers.rewrite_html(item.get('Txt'))
                 if None not in (title, text, html):
                     self.details['contact'][title] = {'text': text, 'html': html}
 

@@ -54,7 +54,7 @@ class IproxProjects:
                         'district_name': '',  # this will be fetched on a successive call...
                         'title': title[0],
                         'subtitle': subtitle,
-                        'content_html': self.raw_data[i].get('content', ''),
+                        'content_html': TextSanitizers.rewrite_html(self.raw_data[i].get('content', '')),
                         'content_text': TextSanitizers.strip_html(self.raw_data[i].get('content', '')),
                         'images': [],  # these will be fetched on a successive call...
                         'publication_date': self.raw_data[i].get('publication_date', ''),
