@@ -167,8 +167,9 @@ class IproxProject:
 
                     # Get Text
                     if filtered_dicts[i]['Omschrijving'][j].get('Nam', '') == 'Tekst':
-                        result['html'] = filtered_dicts[i]['Omschrijving'][j].get('Txt', '')
-                        result['text'] = TextSanitizers.strip_html(filtered_dicts[i]['Omschrijving'][j].get('Txt', ''))
+                        html = filtered_dicts[i]['Omschrijving'][j].get('Txt', '')
+                        result['html'] = TextSanitizers.rewrite_html(html)
+                        result['text'] = TextSanitizers.strip_html(html)
 
                 # Only set text items is there is an app_category (eg. omit bogus items!)
                 if app_category is not None:
@@ -222,8 +223,9 @@ class IproxProject:
 
                     # Get Text
                     if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'Toelichting':
-                        result['html'] = filtered_dicts[i]['Titel'][j].get('Txt', '')
-                        result['text'] = TextSanitizers.strip_html(filtered_dicts[i]['Titel'][j].get('Txt', ''))
+                        html = filtered_dicts[i]['Titel'][j].get('Txt', '')
+                        result['html'] = TextSanitizers.rewrite_html(html)
+                        result['text'] = TextSanitizers.strip_html(html)
 
                 # Only set text items is there is an app_category (eg. omit bogus items!)
                 if app_category is not None:
@@ -299,8 +301,9 @@ class IproxProject:
                     if _item.get('Nam', '') == 'Titel':
                         content_item['title'] = _item.get('Wrd', '')
                     if _item.get('Nam', '') == 'Beschrijving':
-                        content_item['body']['text'] = TextSanitizers.strip_html(_item.get('Txt', ''))
-                        content_item['body']['html'] = _item.get('Txt', '')
+                        html = _item.get('Txt', '')
+                        content_item['body']['html'] = TextSanitizers.rewrite_html(html)
+                        content_item['body']['text'] = TextSanitizers.strip_html(html)
                 content.append(content_item)
             return content
 
@@ -315,12 +318,12 @@ class IproxProject:
 
         timeline = {
             'title': {
-                'text': TextSanitizers.strip_html(gegevens.get('Txt', '')),
-                'html': gegevens.get('Txt', '')
+                'html': TextSanitizers.rewrite_html(gegevens.get('Txt', '')),
+                'text': TextSanitizers.strip_html(gegevens.get('Txt', ''))
             },
             'intro': {
-                'text': TextSanitizers.strip_html(inhoud.get('Txt', '')),
-                'html': inhoud.get('Txt', '')
+                'html': TextSanitizers.rewrite_html(inhoud.get('Txt', '')),
+                'text': TextSanitizers.strip_html(inhoud.get('Txt', ''))
             },
             'items': []
         }

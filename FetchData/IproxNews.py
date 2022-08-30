@@ -130,9 +130,9 @@ class IproxNews:
                 for j in range(0, len(filtered_results[i]['Gegevens']), 1):
                     # Get summary for this news item
                     if filtered_results[i]['Gegevens'][j].get('Nam') == 'Samenvatting':
-                        news_item_data['body']['summary']['text'] = self.sanitizer.strip_html(filtered_results[i]['Gegevens'][j].get('Txt'))
                         html = filtered_results[i]['Gegevens'][j].get('Txt')
-                        news_item_data['body']['summary']['html'] = re.sub('/publish/pages/', 'https://www.amsterdam.nl/publish/pages/', html)
+                        news_item_data['body']['summary']['text'] = self.sanitizer.strip_html(html)
+                        news_item_data['body']['summary']['html'] = self.sanitizer.rewrite_html(html)
 
                     if filtered_results[i]['Gegevens'][j].get('Nam') == 'Brondatum':
                         date = filtered_results[i]['Gegevens'][j].get('Dtm', '')
@@ -173,15 +173,15 @@ class IproxNews:
                 for j in range(0, len(filtered_results[i]['Inhoud']), 1):
                     # Get preface for this news item
                     if filtered_results[i]['Inhoud'][j].get('Nam') == 'Inleiding':
-                        news_item_data['body']['preface']['text'] = self.sanitizer.strip_html(filtered_results[i]['Inhoud'][j].get('Txt'))
                         html = filtered_results[i]['Inhoud'][j].get('Txt')
-                        news_item_data['body']['preface']['html'] = re.sub('/publish/pages/', 'https://www.amsterdam.nl/publish/pages/', html)
+                        news_item_data['body']['preface']['text'] = self.sanitizer.strip_html(html)
+                        news_item_data['body']['preface']['html'] = self.sanitizer.rewrite_html(html)
 
                     # Get content for this news item
                     if filtered_results[i]['Inhoud'][j].get('Nam') == 'Tekst':
-                        news_item_data['body']['content']['text'] = self.sanitizer.strip_html(filtered_results[i]['Inhoud'][j].get('Txt'))
                         html = filtered_results[i]['Inhoud'][j].get('Txt')
-                        news_item_data['body']['content']['html'] = re.sub('/publish/pages/', 'https://www.amsterdam.nl/publish/pages/', html)
+                        news_item_data['body']['content']['text'] = self.sanitizer.strip_html(html)
+                        news_item_data['body']['content']['html'] = self.sanitizer.rewrite_html(html)
 
                         # Get additional images for this news item
                         for asset in filtered_results[i]['Inhoud'][j].get('asset', {}):
