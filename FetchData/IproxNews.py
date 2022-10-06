@@ -77,7 +77,7 @@ class IproxNews:
         :return: json or None
         """
         try:
-            result = requests.get('{url}{query_param}'.format(url=url, query_param=self.query_param))
+            result = requests.get(url)
             return result.json()
         except Exception as error:
             self.logger.error('failed fetching data from {url}: {error}'.format(url=url, error=error))
@@ -106,7 +106,7 @@ class IproxNews:
 
     def scraper(self, news_item):
         raw_data = self.get_data(news_item.get('url'))
-        if raw_data is None:
+        if raw_data is None or raw_data == {}:
             return
 
         news_item_data = self.skeleton()
@@ -239,9 +239,10 @@ class IproxNews:
             # Get queued news_items and scrape data
             job = self.queue.get()
             news_item_data = self.scraper(job['news_item'])
-            news_item_data['project_type'] = job['project_type']
-            self.save_news_item(news_item_data)
-            self.get_images(news_item_data)
+            if news_item_data is not None:
+                news_item_data['project_type'] = job['project_type']
+                self.save_news_item(news_item_data)
+                self.get_images(news_item_data)
         else:
             # Download images for each scraped news item
             self.image.run(module='Iprox News items')
