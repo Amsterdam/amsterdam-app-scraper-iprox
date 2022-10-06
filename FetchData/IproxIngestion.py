@@ -22,6 +22,12 @@ class IproxIngestion:
 
         The garbage collector is initialized with current time. All projects with a last_seen time before current time
         are possibly due for garbage collecting. See details in class IproxGarbageCollector.
+
+        Unique identifiers in Iprox: itmidt
+        Get page via unique identifier:
+
+            https://amsterdam.nl/@{itmidt}/page/?new_json=true&pager_rows=1000      (list of pages)
+            https://amsterdam.nl/@{itmidt}/page/?AppIdt=app-pagetype&reload=true    (single page)
     """
 
     def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
@@ -160,6 +166,6 @@ class IproxIngestion:
             result = self.get_set_projects(project_type)
 
         elif project_type in ['stadsloket']:
-            result = self.get_stads_loketten()
-
+            # result = self.get_stads_loketten()
+            pass  # Disabled temporally
         return print(result)
