@@ -164,8 +164,6 @@ class IproxIngestion:
         result = {}
         if project_type in ['brug', 'kade', 'bouw-en-verkeer']:
             result = self.get_set_projects(project_type)
-
         elif project_type in ['stadsloket']:
-            # result = self.get_stads_loketten()
-            pass  # Disabled temporally
+            result = self.get_stads_loketten()
         return print(result)

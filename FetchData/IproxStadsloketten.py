@@ -98,7 +98,8 @@ class IproxStadsloketten:
                         self.stadsloketten.append({'title': title, 'url': url, 'identifier': identifier})
 
         # Store contact info in db  (save method is overridden to allow only 1 single record)
-        self.save()
+        print('self.save() disabled in IproxStadsLoketten.py Line: ~101')
+        # self.save()
 
     def save(self):
         # Save city contact
@@ -233,7 +234,8 @@ class IproxStadsloket:
 
                         self.details['images'] = {'type': '', 'sources': sources}
 
-        self.save()
+        print('self.save() disabled in IproxStadsLoketten.py Line: ~237')
+        # self.save()
 
     def save(self):
         url = 'http://{host}:{port}{base_path}/cityoffice'.format(host=self.host, port=self.port, base_path=self.base_path)
