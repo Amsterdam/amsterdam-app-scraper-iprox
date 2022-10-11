@@ -242,6 +242,9 @@ class IproxProject:
 
     def set_contact(self, data):
         contact = {'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}
+        if isinstance(data, dict):
+            data = [data]
+
         for i in range(0, len(data), 1):
             if data[i].get('Nam') == 'Naam':
                 contact['name'] = data[i].get('Wrd', None)

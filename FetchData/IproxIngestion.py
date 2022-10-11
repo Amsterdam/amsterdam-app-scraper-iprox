@@ -39,9 +39,10 @@ class IproxIngestion:
         self.image = Image(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
         self.news = IproxNews(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
         self.paths = {
-            'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
-            'kade': '/projecten/kademuren/maatregelen-vernieuwing/',
-            'bouw-en-verkeer': '/projecten/overzicht/'
+            'projects': '/projecten/alle-projecten-amsterdam-app',
+            # 'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
+            # 'kade': '/projecten/kademuren/maatregelen-vernieuwing/',
+            # 'bouw-en-verkeer': '/projecten/overzicht/'
         }
 
     def get_images(self, fpd_details):
@@ -100,9 +101,10 @@ class IproxIngestion:
         updated = new = failed = 0
         for item in fpa.parsed_data:
             try:
-                existing_project = False
                 result = requests.get(url, headers=self.headers, params={'identifier': item.get('identifier')})
                 data = json.loads(result.text)
+
+                existing_project = False
                 if data.get('result') is not None:
                     existing_project = True
 
@@ -162,7 +164,7 @@ class IproxIngestion:
 
     def start(self, project_type):
         result = {}
-        if project_type in ['brug', 'kade', 'bouw-en-verkeer']:
+        if project_type in ['projects']:
             result = self.get_set_projects(project_type)
         elif project_type in ['stadsloket']:
             result = self.get_stads_loketten()
