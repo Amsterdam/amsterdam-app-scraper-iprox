@@ -7,6 +7,12 @@ from GenericFunctions.TextSanitizers import TextSanitizers
 class IproxProjects:
     """ Fetch all projects from IPROX-endpoint and convert the data into a suitable format. The format is described in:
         amsterdam_app_api.models.Projects
+
+        Unique identifiers in Iprox: itmidt
+        Get page via unique identifier:
+
+            https://amsterdam.nl/@{itmidt}/page/?new_json=true&pager_rows=1000      (list of pages)
+            https://amsterdam.nl/@{itmidt}/page/?AppIdt=app-pagetype&reload=true    (single page)
     """
     def __init__(self, path, project_type):
         self.logger = Logger()
@@ -43,7 +49,7 @@ class IproxProjects:
         for i in range(0, len(self.raw_data), 1):
             try:
                 # Using md5 will yield the same result for a given string on repeated iterations, hence an identifier
-                identifier = Hashing.make_md5_hash(self.raw_data[i].get('feedid', None))
+                identifier = self.raw_data[i].get('itmidt', None)
                 title = self.raw_data[i].get('title', '').split(':')
                 subtitle = None if len(title) == 1 else TextSanitizers.sentence_case("".join([title[i] for i in range(1, len(title))]))
                 self.parsed_data.append(
@@ -54,12 +60,12 @@ class IproxProjects:
                         'district_name': '',  # this will be fetched on a successive call...
                         'title': title[0],
                         'subtitle': subtitle,
-                        'content_html': self.raw_data[i].get('content', ''),
+                        'content_html': TextSanitizers.rewrite_html(self.raw_data[i].get('content', '')),
                         'content_text': TextSanitizers.strip_html(self.raw_data[i].get('content', '')),
                         'images': [],  # these will be fetched on a successive call...
                         'publication_date': self.raw_data[i].get('publication_date', ''),
                         'modification_date': self.raw_data[i].get('modification_date', ''),
-                        'source_url': self.raw_data[i].get('source_url', '')
+                        'source_url': 'https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true'.format(identifier=identifier)
                     }
                 )
             except Exception as error:

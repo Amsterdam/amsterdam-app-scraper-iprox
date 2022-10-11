@@ -10,6 +10,12 @@ from GenericFunctions.TextSanitizers import TextSanitizers
 class IproxProject:
     """ Fetch all project details from IPROX-endpoint and convert the data into a suitable format. The format is
         described in: amsterdam_app_api.models.Projects
+
+        Unique identifiers in Iprox: itmidt
+        Get page via unique identifier:
+
+            https://amsterdam.nl/@{itmidt}/page/?new_json=true&pager_rows=1000      (list of pages)
+            https://amsterdam.nl/@{itmidt}/page/?AppIdt=app-pagetype&reload=true    (single page)
     """
     def __init__(self, url, identifier):
         self.logger = Logger()
@@ -167,8 +173,9 @@ class IproxProject:
 
                     # Get Text
                     if filtered_dicts[i]['Omschrijving'][j].get('Nam', '') == 'Tekst':
-                        result['html'] = filtered_dicts[i]['Omschrijving'][j].get('Txt', '')
-                        result['text'] = TextSanitizers.strip_html(filtered_dicts[i]['Omschrijving'][j].get('Txt', ''))
+                        html = filtered_dicts[i]['Omschrijving'][j].get('Txt', '')
+                        result['html'] = TextSanitizers.rewrite_html(html)
+                        result['text'] = TextSanitizers.strip_html(html)
 
                 # Only set text items is there is an app_category (eg. omit bogus items!)
                 if app_category is not None:
@@ -222,8 +229,9 @@ class IproxProject:
 
                     # Get Text
                     if filtered_dicts[i]['Titel'][j].get('Nam', '') == 'Toelichting':
-                        result['html'] = filtered_dicts[i]['Titel'][j].get('Txt', '')
-                        result['text'] = TextSanitizers.strip_html(filtered_dicts[i]['Titel'][j].get('Txt', ''))
+                        html = filtered_dicts[i]['Titel'][j].get('Txt', '')
+                        result['html'] = TextSanitizers.rewrite_html(html)
+                        result['text'] = TextSanitizers.strip_html(html)
 
                 # Only set text items is there is an app_category (eg. omit bogus items!)
                 if app_category is not None:
@@ -234,6 +242,9 @@ class IproxProject:
 
     def set_contact(self, data):
         contact = {'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}
+        if isinstance(data, dict):
+            data = [data]
+
         for i in range(0, len(data), 1):
             if data[i].get('Nam') == 'Naam':
                 contact['name'] = data[i].get('Wrd', None)
@@ -297,10 +308,17 @@ class IproxProject:
                 content_item = {'title': '', 'body': {'text': '', 'html': ''}}
                 for _item in subitem:
                     if _item.get('Nam', '') == 'Titel':
-                        content_item['title'] = _item.get('Wrd', '')
+                        try:
+                            content_item['title'] = _item.get('Wrd', '')
+                        except Exception as error:
+                            print(error)
                     if _item.get('Nam', '') == 'Beschrijving':
-                        content_item['body']['text'] = TextSanitizers.strip_html(_item.get('Txt', ''))
-                        content_item['body']['html'] = _item.get('Txt', '')
+                        try:
+                            html = _item.get('Txt', '')
+                        except Exception as error:
+                            print(error)
+                        content_item['body']['html'] = TextSanitizers.rewrite_html(html)
+                        content_item['body']['text'] = TextSanitizers.strip_html(html)
                 content.append(content_item)
             return content
 
@@ -308,19 +326,22 @@ class IproxProject:
             result = {'collapsed': True, 'progress': ''}
             for _item in instellingen:
                 if _item.get('Nam', '') == 'Status':
-                    result['progress'] = _item.get('SelWrd', '')
+                    try:
+                        result['progress'] = _item.get('SelWrd', '')
+                    except Exception as error:
+                        print(error)
                 if _item.get('Nam', '') == 'Hoofditem initieel ingeklapt':
                     result['collapsed'] = bool(int(_item.get('Wrd', '1')))
             return result
 
         timeline = {
             'title': {
-                'text': TextSanitizers.strip_html(gegevens.get('Txt', '')),
-                'html': gegevens.get('Txt', '')
+                'html': TextSanitizers.rewrite_html(gegevens.get('Txt', '')),
+                'text': TextSanitizers.strip_html(gegevens.get('Txt', ''))
             },
             'intro': {
-                'text': TextSanitizers.strip_html(inhoud.get('Txt', '')),
-                'html': inhoud.get('Txt', '')
+                'html': TextSanitizers.rewrite_html(inhoud.get('Txt', '')),
+                'text': TextSanitizers.strip_html(inhoud.get('Txt', ''))
             },
             'items': []
         }
@@ -332,8 +353,13 @@ class IproxProject:
                     result = parse_subitems(timeline_item['Subitems'])
                     item['content'] = result
 
-                if key == 'Eigenschappen' and timeline_item['Eigenschappen'].get('Nam') == 'Titel':
-                    item['title'] = timeline_item['Eigenschappen'].get('Wrd', '')
+                if key == 'Eigenschappen':
+                    if isinstance(timeline_item['Eigenschappen'], list):
+                        for i in range(len(timeline_item['Eigenschappen'])):
+                            if timeline_item['Eigenschappen'][i].get('Nam') == 'Titel':
+                                item['title'] = timeline_item['Eigenschappen'][i].get('Wrd', '')
+                    elif timeline_item['Eigenschappen'].get('Nam') == 'Titel':
+                        item['title'] = timeline_item['Eigenschappen'].get('Wrd', '')
 
                 if key == 'Instellingen':
                     result = parse_instellingen(timeline_item['Instellingen'])
@@ -357,12 +383,13 @@ class IproxProject:
     """ NEWS-BEGIN """
 
     def set_news_item(self, data):
+        url = 'https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true'.format(identifier=data.get('itmidt'))
         item = {
-            'identifier': Hashing.make_md5_hash(data.get('feedid')),
+            'identifier': data.get('itmidt'),
             'project_identifier': self.identifier,
-            'url': data.get('feedid')
+            'url': url
         }
-        result = requests.get('{url}?new_json=true'.format(url=data.get('feedid')))
+        result = requests.get(url)
         if result.status_code == 200:
             self.details['news'].append(item)
 
@@ -437,4 +464,3 @@ class IproxProject:
             all_images.append({'type': '', 'sources': images})
 
         return all_images
-

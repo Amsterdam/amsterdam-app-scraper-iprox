@@ -28,6 +28,22 @@ class TextSanitizers:
         return text
 
     @staticmethod
+    def rewrite_html(html):
+        """
+        Rewrite specific strings in html
+
+        :param html: string
+        :return: string (html)
+        """
+        regex_1 = re.compile('"/publish/pages/')
+        regex_2 = re.compile('<(?:(?!<).)*?>Klik op de \S+ om te vergroten.+?>')
+        # regex_2 = re.compile('<figcapture>.+?>')
+
+        html = re.sub(regex_1, '"https://www.amsterdam.nl/publish/pages/', html)
+        html = re.sub(regex_2, '', html)
+        return html
+
+    @staticmethod
     def sentence_case(text, strip_spaces=True):
         """ Sentence case refers to titles in which only the first word has a capital letter, the same way a sentence
             is capitalized.

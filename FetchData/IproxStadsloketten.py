@@ -83,7 +83,7 @@ class IproxStadsloketten:
                     if item.get('Nam') == 'Titel':
                         title = item.get('Wrd')
                     if item.get('Nam') == 'Tekst':
-                        html = item.get('Txt')
+                        html = TextSanitizers.rewrite_html(item.get('Txt'))
                         text = TextSanitizers.strip_html(html)
                 if None not in (title, html):
                     self.sections.append({'title': title, 'html': html, 'text': text})
@@ -98,7 +98,8 @@ class IproxStadsloketten:
                         self.stadsloketten.append({'title': title, 'url': url, 'identifier': identifier})
 
         # Store contact info in db  (save method is overridden to allow only 1 single record)
-        self.save()
+        print('self.save() disabled in IproxStadsLoketten.py Line: ~101')
+        # self.save()
 
     def save(self):
         # Save city contact
@@ -175,7 +176,7 @@ class IproxStadsloket:
                 for item in _dict['Gegevens']:
                     if item.get('Nam') == 'Samenvatting':
                         self.details['info'] = {
-                            'html': item.get('Txt'),
+                            'html': TextSanitizers.rewrite_html(item.get('Txt')),
                             'text': TextSanitizers.strip_html(item.get('Txt'))
                         }
 
@@ -186,7 +187,7 @@ class IproxStadsloket:
                         self.details['title'] = item.get('Wrd')
                     if item.get('Nam') == 'Tekst':
                         self.details['address'] = {
-                            'html': item.get('Txt'),
+                            'html': TextSanitizers.rewrite_html(item.get('Txt')),
                             'text': TextSanitizers.strip_html(item.get('Txt'))
                         }
 
@@ -198,7 +199,7 @@ class IproxStadsloket:
                         title = item.get('Wrd')
                     if item.get('Nam') == 'Tekst':
                         text = TextSanitizers.strip_html(item.get('Txt'))
-                        html = item.get('Txt')
+                        html = TextSanitizers.rewrite_html(item.get('Txt'))
                 if None not in (title, text, html):
                     self.details['contact'][title] = {'text': text, 'html': html}
 
@@ -233,7 +234,8 @@ class IproxStadsloket:
 
                         self.details['images'] = {'type': '', 'sources': sources}
 
-        self.save()
+        print('self.save() disabled in IproxStadsLoketten.py Line: ~237')
+        # self.save()
 
     def save(self):
         url = 'http://{host}:{port}{base_path}/cityoffice'.format(host=self.host, port=self.port, base_path=self.base_path)

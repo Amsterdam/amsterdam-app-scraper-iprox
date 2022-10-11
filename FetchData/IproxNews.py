@@ -77,7 +77,7 @@ class IproxNews:
         :return: json or None
         """
         try:
-            result = requests.get('{url}{query_param}'.format(url=url, query_param=self.query_param))
+            result = requests.get(url)
             return result.json()
         except Exception as error:
             self.logger.error('failed fetching data from {url}: {error}'.format(url=url, error=error))
@@ -106,7 +106,7 @@ class IproxNews:
 
     def scraper(self, news_item):
         raw_data = self.get_data(news_item.get('url'))
-        if raw_data is None:
+        if raw_data is None or raw_data == {}:
             return
 
         news_item_data = self.skeleton()
@@ -130,9 +130,9 @@ class IproxNews:
                 for j in range(0, len(filtered_results[i]['Gegevens']), 1):
                     # Get summary for this news item
                     if filtered_results[i]['Gegevens'][j].get('Nam') == 'Samenvatting':
-                        news_item_data['body']['summary']['text'] = self.sanitizer.strip_html(filtered_results[i]['Gegevens'][j].get('Txt'))
                         html = filtered_results[i]['Gegevens'][j].get('Txt')
-                        news_item_data['body']['summary']['html'] = re.sub('/publish/pages/', 'https://www.amsterdam.nl/publish/pages/', html)
+                        news_item_data['body']['summary']['text'] = self.sanitizer.strip_html(html)
+                        news_item_data['body']['summary']['html'] = self.sanitizer.rewrite_html(html)
 
                     if filtered_results[i]['Gegevens'][j].get('Nam') == 'Brondatum':
                         date = filtered_results[i]['Gegevens'][j].get('Dtm', '')
@@ -173,15 +173,15 @@ class IproxNews:
                 for j in range(0, len(filtered_results[i]['Inhoud']), 1):
                     # Get preface for this news item
                     if filtered_results[i]['Inhoud'][j].get('Nam') == 'Inleiding':
-                        news_item_data['body']['preface']['text'] = self.sanitizer.strip_html(filtered_results[i]['Inhoud'][j].get('Txt'))
                         html = filtered_results[i]['Inhoud'][j].get('Txt')
-                        news_item_data['body']['preface']['html'] = re.sub('/publish/pages/', 'https://www.amsterdam.nl/publish/pages/', html)
+                        news_item_data['body']['preface']['text'] = self.sanitizer.strip_html(html)
+                        news_item_data['body']['preface']['html'] = self.sanitizer.rewrite_html(html)
 
                     # Get content for this news item
                     if filtered_results[i]['Inhoud'][j].get('Nam') == 'Tekst':
-                        news_item_data['body']['content']['text'] = self.sanitizer.strip_html(filtered_results[i]['Inhoud'][j].get('Txt'))
                         html = filtered_results[i]['Inhoud'][j].get('Txt')
-                        news_item_data['body']['content']['html'] = re.sub('/publish/pages/', 'https://www.amsterdam.nl/publish/pages/', html)
+                        news_item_data['body']['content']['text'] = self.sanitizer.strip_html(html)
+                        news_item_data['body']['content']['html'] = self.sanitizer.rewrite_html(html)
 
                         # Get additional images for this news item
                         for asset in filtered_results[i]['Inhoud'][j].get('asset', {}):
@@ -239,9 +239,10 @@ class IproxNews:
             # Get queued news_items and scrape data
             job = self.queue.get()
             news_item_data = self.scraper(job['news_item'])
-            news_item_data['project_type'] = job['project_type']
-            self.save_news_item(news_item_data)
-            self.get_images(news_item_data)
+            if news_item_data is not None:
+                news_item_data['project_type'] = job['project_type']
+                self.save_news_item(news_item_data)
+                self.get_images(news_item_data)
         else:
             # Download images for each scraped news item
             self.image.run(module='Iprox News items')
