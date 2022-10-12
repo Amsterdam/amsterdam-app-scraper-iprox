@@ -4,6 +4,8 @@ variables:
   value: scraper-iprox
 - name: tag
   value: $(imageName):$(echo $(Build.SourceVersion) | cut -c1-7)
+- name: unittestPassed
+  value: false
 
 stages:
 - stage: Build
@@ -22,9 +24,8 @@ stages:
       displayName: 'Build docker-image'
 
     - script: | 
-        docker run -e UNITTEST=true $(tag)
-        SUCCESS=$?
-        echo '$SUCCESS = success'
+        docker run -e UNITTEST=true $(tag) && unittestPassed=true
+        echo '$(unittestPassed) result unittest'
       displayName: 'Unittests'
 
     - script: |
