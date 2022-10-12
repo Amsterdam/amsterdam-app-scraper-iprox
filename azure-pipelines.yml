@@ -17,9 +17,15 @@ stages:
     - script: |   
         echo 'Building docker container with tag: $(tag)'
         docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
-        docker tag $(tag) $(acr_url)/$(tag)
-        echo 'Artifact is tagged as: "$(tag)"'
+        #docker tag $(tag) $(acr_url)/$(tag)
+        #echo 'Artifact is tagged as: "$(tag)"'
       displayName: 'Build docker-image'
+
+    - script: | 
+        docker run -e UNITTEST=true $(tag)
+        SUCCESS=$?
+        echo '$SUCCESS = success'
+      displayName: 'Unittests'
 
     - script: |
         # Push to docker registry (Which one is based on branch)
