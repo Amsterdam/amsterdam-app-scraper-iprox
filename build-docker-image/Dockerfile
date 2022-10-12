@@ -3,6 +3,7 @@ FROM python:3.9-alpine
 # Install python requirements
 COPY FetchData/* /code/FetchData/
 COPY GenericFunctions/* /code/GenericFunctions/
+COPY unittests/* /code/unittests/
 COPY init.sh /code/
 COPY main.py /code/
 COPY build-docker-image/requirements.txt /code
