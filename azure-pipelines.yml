@@ -5,7 +5,7 @@ variables:
 - name: tag
   value: $(imageName):$(echo $(Build.SourceVersion) | cut -c1-7)
 
-
+stages:
 - stage: Build
   jobs:
   - job: Build
