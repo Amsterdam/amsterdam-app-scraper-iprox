@@ -25,7 +25,9 @@ stages:
 
     - script: | 
         docker run -e UNITTEST=true $(tag) && unittestPassed=true
-        echo '$(unittestPassed) result unittest'
+        if [ $(unittestPassed) == 'false' ]; then
+          exit 1
+        fi
       displayName: 'Unittests'
 
     - script: |
