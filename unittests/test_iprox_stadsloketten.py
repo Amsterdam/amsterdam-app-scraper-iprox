@@ -132,5 +132,5 @@ def test_iprox_stads_loket_scraper(MockThread, iprox_stadsloket_scraper, mocked_
 
     assert mocked_requests_post.call_count == 1
     assert iprox_stadsloket_scraper.call_count == 2
-    assert MockThread.call_count == 3
+    assert MockThread.call_count == 0
     assert scraper.image.queue.qsize() == 2
