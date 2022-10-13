@@ -18,7 +18,7 @@ steps:
 
 - script: | 
     docker run -e UNITTEST=true $(tag) && unittestPassed=true
-    #echo "unittestPassed: $(unittestPassed)"
+    echo "unittestPassed: $(unittestPassed)"
     if [ $(unittestPassed) == 'false' ]; then
       exit 1
     fi
