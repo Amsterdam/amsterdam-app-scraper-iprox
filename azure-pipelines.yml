@@ -27,15 +27,15 @@ stages:
         # if [ $(unittestPassed) == 'false' ]; then
         #   exit 1
         # fi
-      displayName: 'Unittests'
+      displayName: 'Run unittests'
 
     - script: |
-        # Tag image
         docker tag $(tag) $(acr_url)/$(tag)
         echo 'Artifact is tagged as: "$(tag)"'
-              
-        # Push to docker registry 
+      displayName: 'Tag docker image'
+
+    - script: |
         docker login -u $(acr_username) -p $(acr_password) $(acr_url)
         echo 'Pushing artifact to: "$(acr_url)"'
         docker push $(acr_url)/$(tag)
-      displayName: 'Tag and push docker-image to registry'
+      displayName: 'Push docker image to registry'
