@@ -297,6 +297,7 @@ class TestData:
                      'more-info': [{'title': 'Meer informatie', 'html': '<div>mock</div>', 'text': 'mock'}],
                      'timeline': {}},
             'coordinates': {'lon': 4.918909612586674, 'lat': 52.367703897750914},
+            'contacts': [],
             'district_id': 5398, 'district_name': 'Centrum',
             'images': [{'type': '',
                         'sources': {
@@ -309,7 +310,7 @@ class TestData:
                         'sources': {
                             '220px': {'url': 'https://www.amsterdam.nl/publish/pages/000000/220px/mock.jpg', 'image_id': '3f4a4ec3bc10f60d3aa2eac9b742c8ec', 'filename': 'mock.jpg', 'description': ''},
                             'orig': {'url': 'https://www.amsterdam.nl/publish/pages/000000/mock.jpg', 'image_id': 'e51353040e4c049559c975ce6a650947', 'filename': 'mock.jpg', 'description': ''}}}],
-            'news': [{'identifier': '50e4c7423f32f8744fd2c563d465f718', 'project_identifier': 'identifier', 'url': 'https://www.amsterdam.nl/nieuws/mock/'}],
+            'news': [{'identifier': '000000-news', 'project_identifier': 'identifier', 'url': 'https://amsterdam.nl/@000000-news/page/?AppIdt=app-pagetype&reload=true'}],
             'page_id': -1,
             'title': '', 'subtitle': None,
             'rel_url': 'mock/mock', 'url': 'https://mock/mock/mock/'
@@ -317,6 +318,7 @@ class TestData:
 
         self.iprox_projects = [{
             "category": "Mock",
+            "itmidt": '000000-projects',
             "feedid": "https://mock/",
             "publication_date": "1970-01-01",
             "modification_date": "1970-01-01",
@@ -331,8 +333,11 @@ class TestData:
         }]
 
         self.news_data = [{
-            'category': 'Algemeen', 'feedid': 'https://www.amsterdam.nl/nieuws/mock/',
-            'publication_date': '1970-01-01', 'modification_date': '1970-01-01',
+            'category': 'Algemeen',
+            'feedid': 'https://www.amsterdam.nl/nieuws/mock/',
+            'itmidt': '000000-news',
+            'publication_date': '1970-01-01',
+            'modification_date': '1970-01-01',
             'image_url': 'https://www.amsterdam.nl/publish/pages/000000/mock.jpg',
             'title': 'mock',
             'content': 'mock',

@@ -84,6 +84,9 @@ def mocked_requests_get(*args, **kwargs):
     elif args[0] == 'https://mock_nieuws/?new_json=true':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.news_data)
+    elif args[0] == 'https://amsterdam.nl/@000000-news/page/?AppIdt=app-pagetype&reload=true':
+        test_data = TestData()
+        return MockResponse(200, json_data=test_data.news_data)
     elif args[0] == 'https://mock-timeline?AppIdt=app-pagetype&reload=true':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.timeline_raw)

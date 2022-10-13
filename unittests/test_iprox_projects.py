@@ -5,8 +5,8 @@ from FetchData.IproxProjects import IproxProjects
 from GenericFunctions.Logger import Logger
 from mock_functions import mocked_requests_get
 
-expected_raw_data = [{'category': 'Mock', 'feedid': 'https://mock/', 'publication_date': '1970-01-01', 'modification_date': '1970-01-01', 'image_url': 'https://mock', 'title': 'mock: data', 'content': '<div><p>mock</p></div>', 'source_url': 'https://mock', 'related_articles': '', 'author': '', 'photo_author': '', 'images': []}]
-iprox_parsed_data = [{'project_type': 'identifier', 'identifier': '0defd864f86f6d3110a0fca7fa403991', 'district_id': -1, 'district_name': '', 'title': 'mock', 'subtitle': 'Data', 'content_html': '<div><p>mock</p></div>', 'content_text': 'mock', 'images': [], 'publication_date': '1970-01-01', 'modification_date': '1970-01-01', 'source_url': 'https://mock'}]
+expected_raw_data = [{'category': 'Mock', 'itmidt': '000000-projects', 'feedid': 'https://mock/', 'publication_date': '1970-01-01', 'modification_date': '1970-01-01', 'image_url': 'https://mock', 'title': 'mock: data', 'content': '<div><p>mock</p></div>', 'source_url': 'https://mock', 'related_articles': '', 'author': '', 'photo_author': '', 'images': []}]
+iprox_parsed_data = [{'project_type': 'identifier', 'identifier': '000000-projects', 'district_id': -1, 'district_name': '', 'title': 'mock', 'subtitle': 'Data', 'content_html': '<div><p>mock</p></div>', 'content_text': 'mock', 'images': [], 'publication_date': '1970-01-01', 'modification_date': '1970-01-01', 'source_url': 'https://amsterdam.nl/@000000-projects/page/?AppIdt=app-pagetype&reload=true'}]
 
 
 @patch.object(Logger, 'error')
