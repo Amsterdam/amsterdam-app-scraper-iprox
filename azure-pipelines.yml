@@ -30,12 +30,12 @@ stages:
       displayName: 'Run unittests'
 
     - script: |
-        docker tag $(tag) $(acr_url)/$(tag)
+        docker -t $(tag) -t $(imageName):latest $(acr_url)/$(tag)
         echo 'Artifact is tagged as: "$(tag)"'
       displayName: 'Tag docker image'
 
     - script: |
         docker login -u $(acr_username) -p $(acr_password) $(acr_url)
         echo 'Pushing artifact to: "$(acr_url)"'
-        docker push $(acr_url)/$(tag)
+        docker push $(acr_url)/containers/$(tag)
       displayName: 'Push docker image to registry'
