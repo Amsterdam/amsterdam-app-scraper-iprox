@@ -23,6 +23,7 @@ stages:
 
     - script: | 
         docker run -e UNITTEST=true $(tag) && unittestPassed=true
+        echo "unittestPassed: $(unittestPassed)"
         # if [ $(unittestPassed) == 'false' ]; then
         #   exit 1
         # fi
@@ -34,13 +35,7 @@ stages:
         echo 'Artifact is tagged as: "$(tag)"'
               
         # Push to docker registry 
-        if [ $(branch) == 'main' ]; then
-          docker login -u $(acr_username) -p $(acr_password) $(acr_url)
-          echo 'Pushing artifact to: "$(acr_url)"'
-          docker push $(acr_url)/$(tag)
-        else
-          docker login -u $(acr_username) -p $(acr_password) $(acr_url)
-          echo 'Pushing artifact to: "$(acr_url)"'
-          docker push $(acr_url)/$(tag)
-        fi
+        docker login -u $(acr_username) -p $(acr_password) $(acr_url)
+        echo 'Pushing artifact to: "$(acr_url)"'
+        docker push $(acr_url)/$(tag)
       displayName: 'Tag and push docker-image to registry'
