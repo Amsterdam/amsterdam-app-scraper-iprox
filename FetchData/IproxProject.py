@@ -324,6 +324,9 @@ class IproxProject:
 
         def parse_instellingen(instellingen):
             result = {'collapsed': True, 'progress': ''}
+            if isinstance(instellingen, dict):
+                instellingen = [instellingen]
+
             for _item in instellingen:
                 if _item.get('Nam', '') == 'Status':
                     try:

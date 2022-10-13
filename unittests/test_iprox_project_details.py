@@ -61,7 +61,6 @@ def test_get_timeline():
 
     expected_result = {'title': {'text': 'mock', 'html': '<div>mock</div>'},
                        'intro': {'text': 'mock', 'html': '<div>mock</div>'},
-                       'items': [{'title': {'text': 'mock', 'html': 'mock'}},
-                                 {'collapsed': True}]}
+                       'items': [{'content': [], 'title': 'mock', 'progress': '', 'collapsed': True}]}
 
     TestCase().assertDictEqual(iprox_project.details['body']['timeline'], expected_result)
