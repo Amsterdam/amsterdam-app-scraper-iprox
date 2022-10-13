@@ -30,7 +30,7 @@ stages:
       displayName: 'Run unittests'
 
     - script: |
-        docker -t $(tag) -t $(imageName):latest $(acr_url)/$(tag)
+        docker -t $(tag) -t $(imageName):latest $(acr_url)/containers/$(tag)
         echo 'Artifact is tagged as: "$(tag)"'
       displayName: 'Tag docker image'
 
