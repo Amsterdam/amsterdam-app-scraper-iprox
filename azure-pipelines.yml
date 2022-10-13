@@ -3,7 +3,7 @@ variables:
 - name: imageName
   value: scraper-iprox
 - name: tag
-  value: $(imageName):$(echo $(Build.BuildNumber) | cut -c1-7)
+  value: $(imageName):$(Build.BuildNumber)
 - name: unittestPassed
   value: false
 
@@ -30,9 +30,6 @@ stages:
       displayName: 'Run unittests'
 
     - script: |
-        #echo "BuildId: $(Build.BuildId)"
-        #echo "BuildNumber: $(Build.BuildNumber)"
-        #echo "SourceVersion: $(Build.SourceVersion)"
         docker tag $(tag) $(acr_url)/$(tag)
         echo 'Artifact is tagged as: "$(tag)"'
       displayName: 'Tag docker image'
