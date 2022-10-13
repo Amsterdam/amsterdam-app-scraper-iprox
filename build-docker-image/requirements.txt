@@ -3,3 +3,6 @@ pybase64
 pycryptodome
 requests
 wheel
+pytest
+django_test
+coverage
