@@ -35,4 +35,5 @@ stages:
         docker login -u $(acr_username) -p $(acr_password) $(acr_url)
         echo 'Pushing artifact to: "$(acr_url)"'
         docker push $(acr_url)/$(tag)
+        echo 'Push successful'
       displayName: 'Push docker image to registry'
