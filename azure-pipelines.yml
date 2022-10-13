@@ -19,8 +19,6 @@ stages:
     - script: |   
         echo 'Building docker container with tag: $(tag)'
         docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
-        #docker tag $(tag) $(acr_url)/$(tag)
-        #echo 'Artifact is tagged as: "$(tag)"'
       displayName: 'Build docker-image'
 
     - script: | 
@@ -31,7 +29,11 @@ stages:
       displayName: 'Unittests'
 
     - script: |
-        # Push to docker registry (Which one is based on branch)
+        # Tag image
+        docker tag $(tag) $(acr_url)/$(tag)
+        echo 'Artifact is tagged as: "$(tag)"'
+              
+        # Push to docker registry 
         if [ $(branch) == 'main' ]; then
           docker login -u $(acr_username) -p $(acr_password) $(acr_url)
           echo 'Pushing artifact to: "$(acr_url)"'
@@ -41,4 +43,4 @@ stages:
           echo 'Pushing artifact to: "$(acr_url)"'
           docker push $(acr_url)/$(tag)
         fi
-      displayName: 'Push docker-image to registry'
+      displayName: 'Tag and push docker-image to registry'
