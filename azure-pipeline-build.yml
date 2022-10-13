@@ -1,0 +1,30 @@
+ variables:
+- group: container-registry
+- name: imageName
+  value: scraper-iprox
+- name: tag
+  value: $(imageName):$(Build.BuildNumber)
+- name: unittestPassed
+  value: false
+
+stages:
+- stage: Test
+  jobs:
+  - job: test
+
+    pool:
+      vmImage: ubuntu-latest
+
+    steps:
+    - script: |   
+        echo 'Building docker container with tag: $(tag)'
+        docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
+      displayName: 'Build docker-image'
+
+    - script: | 
+        docker run -e UNITTEST=true $(tag) && unittestPassed=true
+        #echo "unittestPassed: $(unittestPassed)"
+        if [ $(unittestPassed) == 'false' ]; then
+          exit 1
+        fi
+      displayName: 'Run unittests'

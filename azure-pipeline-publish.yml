@@ -1,3 +1,8 @@
+trigger:
+  branches:
+    include:
+    - main
+    
 variables:
 - group: container-registry
 - name: imageName
@@ -20,14 +25,6 @@ stages:
         echo 'Building docker container with tag: $(tag)'
         docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
       displayName: 'Build docker-image'
-
-    - script: | 
-        docker run -e UNITTEST=true $(tag) && unittestPassed=true
-        echo "unittestPassed: $(unittestPassed)"
-        # if [ $(unittestPassed) == 'false' ]; then
-        #   exit 1
-        # fi
-      displayName: 'Run unittests'
 
     - script: |
         docker tag $(tag) $(acr_url)/$(tag)
