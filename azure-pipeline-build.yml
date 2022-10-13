@@ -1,4 +1,7 @@
- variables:
+pool:
+  vmImage: ubuntu-latest
+
+variables:
 - group: container-registry
 - name: imageName
   value: scraper-iprox
@@ -6,9 +9,6 @@
   value: $(imageName):$(Build.BuildNumber)
 - name: unittestPassed
   value: false
-
-pool:
-  vmImage: ubuntu-latest
 
 steps:
 - script: |   
