@@ -1,29 +1,43 @@
-# Docker
-# Build a Docker image
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
-
-trigger:
-- feature/57728-add-azure-pipeline
-
-resources:
-- repo: self
-
 variables:
-  tag: '$(Build.BuildId)'
+- group: container-registry
+- name: imageName
+  value: scraper-iprox
+- name: tag
+  value: $(imageName):$(Build.BuildNumber)
+- name: unittestPassed
+  value: false
 
 stages:
 - stage: Build
-  displayName: Build image
   jobs:
   - job: Build
-    displayName: Build
+
     pool:
       vmImage: ubuntu-latest
+
     steps:
-    - task: Docker@2
-      displayName: Build an image
-      inputs:
-        command: build
-        dockerfile: '$(Build.SourcesDirectory)/build-docker-image/Dockerfile'
-        tags: |
-          $(tag)
+    - script: |   
+        echo 'Building docker container with tag: $(tag)'
+        docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
+      displayName: 'Build docker image'
+
+    - script: | 
+        docker run -e UNITTEST=true $(tag) && unittestPassed=true
+        #echo "unittestPassed: $(unittestPassed)"
+        if [ $(unittestPassed) == 'false' ]; then
+          exit 1
+        fi
+      displayName: 'Run unittests'
+
+    - script: |
+        if [ $(branch) == 'main' ]; then
+          $ Tag docker image
+          docker tag $(tag) $(acr_url)/$(tag)
+          echo 'Artifact is tagged as: "$(tag)"'
+
+          # Push docker image to registry
+          docker login -u $(acr_username) -p $(acr_password) $(acr_url)
+          echo 'Pushing artifact to: "$(acr_url)"'
+          docker push $(acr_url)/$(tag)
+        fi
+      displayName: 'Tag and push docker image to registry'
