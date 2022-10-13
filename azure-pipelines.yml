@@ -30,6 +30,9 @@ stages:
       displayName: 'Run unittests'
 
     - script: |
+        echo "BuildId: $(Build.BuildId)"
+        echo "BuildNumber: $(Build.BuildNumber)"
+        echo "SourceVersion: $(Build.SourceVersion)"
         docker tag $(tag) $(acr_url)/$(tag)
         echo 'Artifact is tagged as: "$(tag)"'
       displayName: 'Tag docker image'
