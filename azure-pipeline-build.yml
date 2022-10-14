@@ -8,9 +8,7 @@ variables:
 - name: tag
   value: $(imageName):$(Build.BuildNumber)
 - name: unittestPassed
-  value: true
-# - name: testBool
-#   value: false
+  value: false
 
 steps:
 - script: |   
@@ -18,30 +16,14 @@ steps:
     docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
   displayName: 'Build docker image'
 
-# - bash: |
-#     echo "testBool: $(testBool)"
-#     echo "##vso[task.setvariable variable=testBool;]true"
-#     echo "testBool: $(testBool)"
-#   displayName: 'Test set variable'
-
-# - bash: |
-#     echo "testBool expanded: $(testBool)"
-#   displayName: 'Test expanded variable'
-
 - script: | 
-    echo "unittestPassed: $(unittestPassed)"
-    docker run -e UNITTEST=true $(tag) && echo "##vso[task.setvariable variable=unittestPassed;]false"
-    
-    echo "unittestPassed: $(unittestPassed)"
-    
-    # if [ $(unittestPassed) == 'false' ]; then
-    #   exit 1
-    # fi
+    docker run -e UNITTEST=true $(tag) && echo "##vso[task.setvariable variable=unittestPassed;]true"
   displayName: 'Run unittests'
 
+# Handling the result needs to be in a different step because only then variable wil be expanded
+# See: https://learn.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#macro-syntax-variables
 - script: |    
-    echo "unittestPassed: $(unittestPassed)"
     if [ $(unittestPassed) == 'false' ]; then
       exit 1
     fi    
-  displayName: 'Fail if unittest result is false'
+  displayName: 'Fail pipeline if unittest result is false'
