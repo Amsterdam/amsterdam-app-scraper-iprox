@@ -22,7 +22,7 @@ steps:
     echo "unittestPassed: $(unittestPassed)"
     echo "testBool: $(testBool)"
     docker run -e UNITTEST=true $(tag) && unittestPassed=true
-    testBool=true
+    echo "##vso[task.setvariable variable=testBool;]true"
     echo "unittestPassed: $(unittestPassed)"
     echo "testBool: $(testBool)"
     if [ $(unittestPassed) == 'false' ]; then
