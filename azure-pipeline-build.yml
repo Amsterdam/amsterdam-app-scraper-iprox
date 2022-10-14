@@ -34,7 +34,12 @@ steps:
     
     echo "unittestPassed: $(unittestPassed)"
     
-    if [ $(unittestPassed) == 'false' ]; then
-      exit 1
-    fi
+    # if [ $(unittestPassed) == 'false' ]; then
+    #   exit 1
+    # fi
   displayName: 'Run unittests'
+
+  - script: |    
+    echo "unittestPassed: $(unittestPassed)"
+  
+  displayName: 'Test expanded value for unittest result'
