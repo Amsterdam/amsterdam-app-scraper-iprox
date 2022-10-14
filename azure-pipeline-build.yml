@@ -8,9 +8,9 @@ variables:
 - name: tag
   value: $(imageName):$(Build.BuildNumber)
 - name: unittestPassed
-  value: false
-- name: testBool
   value: true
+- name: testBool
+  value: false
 
 steps:
 - script: |   
