@@ -39,7 +39,6 @@ steps:
     # fi
   displayName: 'Run unittests'
 
-  - script: |    
+- script: |    
     echo "unittestPassed: $(unittestPassed)"
-  
   displayName: 'Test expanded value for unittest result'
