@@ -41,4 +41,7 @@ steps:
 
 - script: |    
     echo "unittestPassed: $(unittestPassed)"
-  displayName: 'Test expanded value for unittest result'
+    if [ $(unittestPassed) == 'false' ]; then
+      exit 1
+    fi    
+  displayName: 'Fail if unittest result is false'
