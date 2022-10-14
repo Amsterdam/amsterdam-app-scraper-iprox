@@ -9,6 +9,8 @@ variables:
   value: $(imageName):$(Build.BuildNumber)
 - name: unittestPassed
   value: false
+- name: testBool
+  value: false
 
 steps:
 - script: |   
@@ -17,14 +19,12 @@ steps:
   displayName: 'Build docker image'
 
 - script: | 
-    unittest_success=false
-    #echo "> succes: $(unittest_success)"
-    echo "##vso[task.setvariable variable=unittest_success;]$unittest_success"
-    docker run -e UNITTEST=true $(tag) && unittest_success=true
-    echo "> succes after docker run: $(unittest_success)"
-    $unittest_success=true
-    echo "> succes after set var: $(unittest_success)"
     echo "unittestPassed: $(unittestPassed)"
+    echo "testBool: $(testBool)"
+    docker run -e UNITTEST=true $(tag) && unittestPassed=true
+    testBool=true
+    echo "unittestPassed: $(unittestPassed)"
+    echo "testBool: $(testBool)"
     if [ $(unittestPassed) == 'false' ]; then
       exit 1
     fi
