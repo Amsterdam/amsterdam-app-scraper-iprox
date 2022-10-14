@@ -1,5 +1,7 @@
 pr:
-- main
+  branches:
+    exclude:
+    - main
     
 pool:
   vmImage: ubuntu-latest
