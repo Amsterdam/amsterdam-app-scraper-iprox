@@ -66,3 +66,4 @@ data is base64 encoded. BASE_PATH is set via the environment parameter passed to
 # Dependencies
 This software works in conjunction with https://github.com/Amsterdam/amsterdam-app-backend as a TARGET, but this can
 be any TARGET of your choosing.
+
