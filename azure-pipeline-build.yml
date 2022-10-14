@@ -10,7 +10,7 @@ variables:
 - name: unittestPassed
   value: false
 - name: testBool
-  value: "help"
+  value: false
 
 steps:
 - script: |   
@@ -20,9 +20,13 @@ steps:
 
 - bash: |
     echo "testBool: $(testBool)"
-    echo "##vso[task.setvariable variable=testBool;]saved"
+    echo "##vso[task.setvariable variable=testBool;]true"
     echo "testBool: $(testBool)"
   displayName: 'Test set variable'
+
+- bash: |
+    echo "testBool expanded: $(testBool)"
+  displayName: 'Test expanded variable'
 
 - script: | 
     echo "unittestPassed: $(unittestPassed)"
