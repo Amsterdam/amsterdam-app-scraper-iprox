@@ -10,7 +10,7 @@ variables:
 - name: unittestPassed
   value: false
 - name: testBool
-  value: false
+  value: true
 
 steps:
 - script: |   
@@ -30,7 +30,7 @@ steps:
 
 - script: | 
     echo "unittestPassed: $(unittestPassed)"
-    docker run -e UNITTEST=true $(tag) && "##vso[task.setvariable variable=unittestPassed;]true"
+    docker run -e UNITTEST=true $(tag) && echo "##vso[task.setvariable variable=unittestPassed;]false"
     
     echo "unittestPassed: $(unittestPassed)"
     
