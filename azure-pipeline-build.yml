@@ -18,7 +18,8 @@ steps:
 
 - script: | 
     unittest_success=false
-    echo "> succes: $(unittest_success)"
+    #echo "> succes: $(unittest_success)"
+    echo "##vso[task.setvariable variable=unittest_success;]$unittest_success"
     docker run -e UNITTEST=true $(tag) && unittest_success=true
     echo "> succes after docker run: $(unittest_success)"
     $unittest_success=true
