@@ -9,8 +9,8 @@ variables:
   value: $(imageName):$(Build.BuildNumber)
 - name: unittestPassed
   value: false
-- name: testBool
-  value: false
+# - name: testBool
+#   value: false
 
 steps:
 - script: |   
@@ -19,7 +19,8 @@ steps:
   displayName: 'Build docker image'
 
 - bash: |
-    echo "testBool: $(testBool)"
+    testBool=false
+    #echo "testBool: $(testBool)"
     echo "##vso[task.setvariable variable=testBool;]true"
     echo "testBool: $(testBool)"
   displayName: 'Test set variable'
