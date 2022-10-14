@@ -17,7 +17,7 @@ steps:
   displayName: 'Build docker image'
 
 - script: | 
-    docker run -e UNITTEST=true $(tag) && unittestPassed=true
+    docker run -e UNITTEST=true $(tag) && $unittestPassed=true
     echo "unittestPassed: $(unittestPassed)"
     if [ $(unittestPassed) == 'false' ]; then
       exit 1
