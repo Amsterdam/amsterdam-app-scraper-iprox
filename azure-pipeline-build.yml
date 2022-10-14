@@ -30,7 +30,7 @@ steps:
 
 - script: | 
     echo "unittestPassed: $(unittestPassed)"
-    docker run -e UNITTEST=true $(tag) && unittestPassed=true
+    docker run -e UNITTEST=true $(tag) && "##vso[task.setvariable variable=unittestPassed;]true"
     
     echo "unittestPassed: $(unittestPassed)"
     
