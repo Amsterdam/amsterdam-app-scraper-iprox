@@ -30,11 +30,9 @@ steps:
 
 - script: | 
     echo "unittestPassed: $(unittestPassed)"
-    echo "unittestPassed runtime expression: $[variables.unittestPassed]"
     docker run -e UNITTEST=true $(tag) && echo "##vso[task.setvariable variable=unittestPassed;]false"
     
     echo "unittestPassed: $(unittestPassed)"
-    echo "unittestPassed runtime expression: $[variables.unittestPassed]"
     
     # if [ $(unittestPassed) == 'false' ]; then
     #   exit 1
@@ -43,7 +41,6 @@ steps:
 
 - script: |    
     echo "unittestPassed: $(unittestPassed)"
-    echo "unittestPassed runtime expression: $[variables.unittestPassed]"
     if [ $(unittestPassed) == 'false' ]; then
       exit 1
     fi    
