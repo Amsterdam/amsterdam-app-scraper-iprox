@@ -6,20 +6,18 @@ pool:
 variables:
 - group: container-registry
 - name: imageName
-  value: scraper-iprox
-- name: tag
-  value: $(imageName):$(Build.BuildNumber)
+  value: scraper-iprox-unittest
 - name: unittestPassed
   value: false
 
 steps:
 - script: |   
-    echo 'Building docker container with tag: $(tag)'
-    docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(tag) .
+    echo 'Building docker container with tag: $(imageName)'
+    docker build -f $(Build.SourcesDirectory)/build-docker-image/Dockerfile -t $(imageName) .
   displayName: 'Build docker image'
 
 - script: | 
-    docker run -e UNITTEST=true $(tag) && echo "##vso[task.setvariable variable=unittestPassed;]true"
+    docker run -e UNITTEST=true $(imageName) && echo "##vso[task.setvariable variable=unittestPassed;]true"
   displayName: 'Run unittests'
 
 # Handling the result needs to be in a different step because only then variable wil be expanded
