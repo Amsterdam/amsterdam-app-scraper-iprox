@@ -12,7 +12,6 @@ start_scraper () {
       printf "Starting unittests\n\n"
       cd /code && \
       export PYTHONPATH=/code && \
-      source venv/bin/activate && \
       python3 -m pip install pytest django_test coverage && \
       pytest --no-header --no-summary -q unittests/
     fi
