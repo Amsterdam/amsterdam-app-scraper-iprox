@@ -10,7 +10,10 @@ start_scraper () {
       cd /code && python main.py
     else
       printf "Starting unittests\n\n"
-      cd /code && PYTHONPATH=/code pytest --no-header --no-summary -q unittests/
+      cd /code && \
+      export PYTHONPATH=/code && \
+      python3 -m pip install pytest django_test coverage && \
+      pytest --no-header --no-summary -q unittests/
     fi
 }
 
