@@ -177,7 +177,7 @@ class IproxProject:
                         result['html'] = TextSanitizers.rewrite_html(html)
                         result['text'] = TextSanitizers.strip_html(html)
 
-                # Only set text items is there is an app_category (eg. omit bogus items!)
+                # Only set text items if there is an app_category (eg. omit bogus items!)
                 if app_category is not None:
                     self.set_text_result(result, app_category)
 
@@ -306,6 +306,9 @@ class IproxProject:
             content = []
             for subitem in subitems:
                 content_item = {'title': '', 'body': {'text': '', 'html': ''}}
+                if isinstance(subitem, dict):
+                    subitem = [subitem]
+
                 for _item in subitem:
                     if _item.get('Nam', '') == 'Titel':
                         try:
@@ -379,7 +382,7 @@ class IproxProject:
             clusters = raw_data.get('item', {}).get('page', {}).get('cluster', [])
             self.filter_timeline(clusters)
         except Exception as error:
-            self.logger.error('failed fetching timeline from data: {error}'.format(url=self.url, error=error))
+            self.logger.error('failed fetching timeline from data: {error} {identifier}'.format(error=error, identifier=self.identifier))
 
     """ TIMELINE-END """
 
