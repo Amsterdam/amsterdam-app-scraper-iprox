@@ -100,6 +100,8 @@ class IproxIngestion:
 
         updated = new = failed = 0
         for item in fpa.parsed_data:
+            print('Parsing: https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true title: {title}'.format(identifier=item.get('identifier'), title=item['title']))
+
             try:
                 result = requests.get(url, headers=self.headers, params={'identifier': item.get('identifier')})
                 data = json.loads(result.text)
@@ -139,11 +141,13 @@ class IproxIngestion:
         threads = list()
 
         # Fetch news
+        print('Fetching news items')
         thread_news = threading.Thread(target=self.news.run)
         thread_news.start()
         threads.append(thread_news)
 
         # Fetch images (queue is filled during project scraping)
+        print('Fetching images')
         thread_image = threading.Thread(target=self.image.run, kwargs=({'module': 'Iprox Project Details'}))
         thread_image.start()
         threads.append(thread_image)

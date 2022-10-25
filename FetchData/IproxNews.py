@@ -185,6 +185,8 @@ class IproxNews:
 
                         # Get additional images for this news item
                         for asset in filtered_results[i]['Inhoud'][j].get('asset', {}):
+                            if isinstance(asset, str):
+                                asset = filtered_results[i]['Inhoud'][j]['asset']
                             domain = 'https://www.amsterdam.nl'
                             location = asset.get('Src', '')
                             size = location.split('/')[-2]
