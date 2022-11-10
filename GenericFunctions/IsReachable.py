@@ -17,12 +17,12 @@ class IsReachable:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.settimeout(1)
                     s.connect((self.backend_host, self.backend_port))
-                print('{host}:{port} is reachable'.format(host=self.backend_host, port=self.backend_port))
+                print('{host}:{port} is reachable'.format(host=self.backend_host, port=self.backend_port), flush=True)
                 return True
             except Exception as error:
                 if once is True:
                     self.logger.error(error)
                     once = False
                 time.sleep(1)
-        print('{host}:{port} is unreachable'.format(host=self.backend_host, port=self.backend_port))
+        print('{host}:{port} is unreachable'.format(host=self.backend_host, port=self.backend_port), flush=True)
         return False

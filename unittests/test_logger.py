@@ -11,15 +11,15 @@ def test_logger_debug_enabled():
 
     with patch('builtins.print') as mocked_print:
         logger.info('info')
-        assert mocked_print.call_args_list == [call('info')]
+        assert mocked_print.call_args_list == [call('info', flush=True)]
 
     with patch('builtins.print') as mocked_print:
         logger.debug('debug')
-        assert mocked_print.call_args_list == [call('debug')]
+        assert mocked_print.call_args_list == [call('debug', flush=True)]
 
     with patch('builtins.print') as mocked_print:
         logger.error('error')
-        assert mocked_print.call_args_list == [call('error')]
+        assert mocked_print.call_args_list == [call('error', flush=True)]
 
     os.environ['DEBUG'] = debug
 

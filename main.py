@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     # Check if API-server is alive
     if not IsReachable(backend_host=backend_host, backend_port=backend_port).check():
-        print('API-server unreachable: Iprox scraper aborted')
+        print('API-server unreachable: Iprox scraper aborted', flush=True)
         exit(1)
 
     # Setup UserAuthorization Header

@@ -12,18 +12,18 @@ class Logger:
 
     def info(self, record):
         if self.debug_enabled is True:
-            print(record)
+            print(record, flush=True)
         else:
             self.logger.info(record)
 
     def error(self, record):
         if self.debug_enabled is True:
-            print(record)
+            print(record, flush=True)
         else:
             self.logger.error(record)
 
     def debug(self, record):
         if self.debug_enabled is True:
-            print(record)
+            print(record, flush=True)
         else:
             self.logger.debug(record)
