@@ -98,7 +98,7 @@ class IproxStadsloketten:
                         self.stadsloketten.append({'title': title, 'url': url, 'identifier': identifier})
 
         # Store contact info in db  (save method is overridden to allow only 1 single record)
-        print('self.save() disabled in IproxStadsLoketten.py Line: ~101')
+        print('self.save() disabled in IproxStadsLoketten.py Line: ~101', flush=True)
         # self.save()
 
     def save(self):
@@ -234,7 +234,7 @@ class IproxStadsloket:
 
                         self.details['images'] = {'type': '', 'sources': sources}
 
-        print('self.save() disabled in IproxStadsLoketten.py Line: ~237')
+        print('self.save() disabled in IproxStadsLoketten.py Line: ~237', flush=True)
         # self.save()
 
     def save(self):

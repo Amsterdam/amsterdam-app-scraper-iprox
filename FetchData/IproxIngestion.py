@@ -98,9 +98,12 @@ class IproxIngestion:
                                                                 port=self.backend_port,
                                                                 base_path=self.base_path)
 
+        # DEBUG: Add a single project for debugging (comment when done...!)
+        # fpa.parsed_data = [{'project_type': 'projects', 'identifier': '1225399', 'district_id': -1, 'district_name': '', 'title': 'Mosplein, rotonde vernieuwen', 'subtitle': None, 'content_html': '<div><p>2022 - 2024. We gaan de rotonde van het Mosplein opnieuw inrichten.</p></div>', 'content_text': '2022 - 2024. We gaan de rotonde van het Mosplein opnieuw inrichten.', 'images': [], 'publication_date': '2020-09-24', 'modification_date': '2022-10-13', 'source_url': 'https://amsterdam.nl/@1225399/page/?AppIdt=app-pagetype&reload=true'}]
+
         updated = new = failed = 0
         for item in fpa.parsed_data:
-            print('Parsing: https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true title: {title}'.format(identifier=item.get('identifier'), title=item['title']))
+            print('Parsing: https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true title: {title}'.format(identifier=item.get('identifier'), title=item['title']), flush=True)
 
             try:
                 result = requests.get(url, headers=self.headers, params={'identifier': item.get('identifier')})
@@ -141,13 +144,13 @@ class IproxIngestion:
         threads = list()
 
         # Fetch news
-        print('Fetching news items')
+        print('Fetching news items', flush=True)
         thread_news = threading.Thread(target=self.news.run)
         thread_news.start()
         threads.append(thread_news)
 
         # Fetch images (queue is filled during project scraping)
-        print('Fetching images')
+        print('Fetching images', flush=True)
         thread_image = threading.Thread(target=self.image.run, kwargs=({'module': 'Iprox Project Details'}))
         thread_image.start()
         threads.append(thread_image)
@@ -172,4 +175,4 @@ class IproxIngestion:
             result = self.get_set_projects(project_type)
         elif project_type in ['stadsloket']:
             result = self.get_stads_loketten()
-        return print(result)
+        return print(result, flush=True)

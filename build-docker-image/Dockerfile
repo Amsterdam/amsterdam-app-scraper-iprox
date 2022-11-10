@@ -12,7 +12,6 @@ RUN apk add --no-cache --virtual .build-deps gcc musl-dev \
       --no-cache-dir install \
       -r /code/requirements.txt \
  && rm -rf /tmp/* \
- && find / -name "*.so" -exec strip --strip-all {} \; \
  && find / -name "*.c" -delete \
  && find / -name "*.pyc" -delete \
  && apk del .build-deps \

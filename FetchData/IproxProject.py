@@ -304,24 +304,34 @@ class IproxProject:
     def set_timeline(self, gegevens, inhoud, timeline_items):
         def parse_subitems(subitems):
             content = []
-            for subitem in subitems:
-                content_item = {'title': '', 'body': {'text': '', 'html': ''}}
-                if isinstance(subitem, dict):
-                    subitem = [subitem]
+            if isinstance(subitems, dict):
+                subitems = [subitems]
 
-                for _item in subitem:
-                    if _item.get('Nam', '') == 'Titel':
+            for i in range(0, len(subitems), 1):
+                subitem = subitems[i]
+                if not isinstance(subitem, dict):
+                    continue  # We expect a list!
+
+                content_item = {'title': '', 'body': {'text': '', 'html': ''}}
+
+                if isinstance(subitem.get('Eigenschappen', []), dict):
+                    subitem['Eigenschappen'] = [subitem['Eigenschappen']]
+
+                for i in range(0, len(subitem.get('Eigenschappen', [])), 1):
+                    if subitem['Eigenschappen'][i].get('Nam', '') == 'Titel':
                         try:
-                            content_item['title'] = _item.get('Wrd', '')
+                            content_item['title'] = subitem['Eigenschappen'][i].get('Wrd', '')
                         except Exception as error:
-                            print(error)
-                    if _item.get('Nam', '') == 'Beschrijving':
+                            print(error, flush=True)
+
+                    if subitem['Eigenschappen'][i].get('Nam', '') in ['Beschrijving', 'Inleiding']:
                         try:
-                            html = _item.get('Txt', '')
+                            html = subitem['Eigenschappen'][i].get('Txt', '')
+                            content_item['body']['html'] = TextSanitizers.rewrite_html(html)
+                            content_item['body']['text'] = TextSanitizers.strip_html(html)
                         except Exception as error:
-                            print(error)
-                        content_item['body']['html'] = TextSanitizers.rewrite_html(html)
-                        content_item['body']['text'] = TextSanitizers.strip_html(html)
+                            print(error, flush=True)
+
                 content.append(content_item)
             return content
 
@@ -335,7 +345,7 @@ class IproxProject:
                     try:
                         result['progress'] = _item.get('SelWrd', '')
                     except Exception as error:
-                        print(error)
+                        print(error, flush=True)
                 if _item.get('Nam', '') == 'Hoofditem initieel ingeklapt':
                     result['collapsed'] = bool(int(_item.get('Wrd', '1')))
             return result
@@ -356,7 +366,8 @@ class IproxProject:
             for key in timeline_item:
                 # Get content items
                 if key == 'Subitems':
-                    result = parse_subitems(timeline_item['Subitems'])
+                    # result = parse_subitems(timeline_item['Subitems'])
+                    result = parse_subitems(timeline_item)
                     item['content'] = result
 
                 if key == 'Eigenschappen':
