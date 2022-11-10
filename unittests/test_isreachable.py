@@ -10,7 +10,7 @@ def test_is_reachable(mocked_socket_connect_ok, mock_print):
     reachable = IsReachable()
     result = reachable.check()
     assert result is True
-    mock_print.assert_called_with('api_server:8000 is reachable')
+    mock_print.assert_called_with('api_server:8000 is reachable', flush=True)
 
 
 @patch('builtins.print')
@@ -20,4 +20,4 @@ def test_is_not_reachable(mocked_socket_connect_fail, sleep, mock_print):
     reachable = IsReachable()
     result = reachable.check()
     assert result is False
-    mock_print.assert_called_with('api_server:8000 is unreachable')
+    mock_print.assert_called_with('api_server:8000 is unreachable', flush=True)

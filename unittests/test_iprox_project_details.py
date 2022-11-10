@@ -59,8 +59,13 @@ def test_get_timeline():
     iprox_project = IproxProject('None', 'identifier')
     iprox_project.get_timeline('https://mock-timeline')
 
-    expected_result = {'title': {'text': 'mock', 'html': '<div>mock</div>'},
-                       'intro': {'text': 'mock', 'html': '<div>mock</div>'},
-                       'items': [{'content': [], 'title': 'mock', 'progress': '', 'collapsed': True}]}
+    expected_result = {
+        'title': {'text': 'mock', 'html': '<div>mock</div>'},
+        'intro': {'text': 'mock', 'html': '<div>mock</div>'},
+        'items': [
+            {'content': [{'title': 'mock', 'body': {'text': '', 'html': ''}}],
+             'title': 'mock', 'progress': '', 'collapsed': True}
+        ]
+    }
 
     TestCase().assertDictEqual(iprox_project.details['body']['timeline'], expected_result)
