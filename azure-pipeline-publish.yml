@@ -17,7 +17,7 @@ variables:
   - name: containerRegistry
     value: $(container-registry)
   - name: dockerfilePath
-    value: '$(Build.SourcesDirectory)/build-docker-image/Dockerfile'
+    value: '$(Build.SourcesDirectory)/Dockerfile'
   - name: tag
     value: '$(Build.BuildNumber)'
   # Agent VM image name

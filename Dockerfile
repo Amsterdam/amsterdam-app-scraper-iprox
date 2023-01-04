@@ -6,7 +6,7 @@ COPY GenericFunctions/* /code/GenericFunctions/
 COPY unittests/* /code/unittests/
 COPY init.sh /code/
 COPY main.py /code/
-COPY build-docker-image/requirements.txt /code
+COPY requirements.txt /code
 RUN apk add --no-cache --virtual .build-deps gcc musl-dev \
  && python3 -m pip \
       --no-cache-dir install \
