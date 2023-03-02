@@ -1,7 +1,9 @@
-import datetime
+""" Mock data file """
+# pylint: disable=line-too-long
 
 
 class TestData:
+    """ Mock data class """
     def __init__(self):
         self.image_download_jobs = [
             {

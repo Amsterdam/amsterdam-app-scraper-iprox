@@ -1,20 +1,27 @@
-from Crypto import Random
-from GenericFunctions.Logger import Logger
-from Crypto.Cipher import AES
+""" Crypto class used for decorators and creating header for accessing
+    the ingestion routes on the projects backend
+"""
 from hashlib import md5
 from pybase64 import b64encode, b64decode
+from Crypto import Random
+from Crypto.Cipher import AES
+from GenericFunctions.Logger import Logger
 
 
 class AESCipher:
+    """ Encrypt en decrypt class for AES ciphers
+    """
     def __init__(self, data, secret):
         self.logger = Logger()
         self.data = data
         self.secret = secret.encode()
-        self.block_size = 16
-        self.pad = lambda s: s + (self.block_size - len(s) % self.block_size) * chr(self.block_size - len(s) % self.block_size)
+        self.blk_size = 16
+        self.pad = lambda s: s + (self.blk_size - len(s) % self.blk_size) * chr(self.blk_size - len(s) % self.blk_size)
         self.unpad = lambda s: s[:-ord(s[len(s) - 1:])]
 
-    def bytes_to_key(self, data, salt, output=48):
+    @staticmethod
+    def bytes_to_key(data, salt, output=48):
+        """ Create key from bytes input """
         assert len(salt) == 8, len(salt)
         data += salt
         key = md5(data).digest()
@@ -25,6 +32,7 @@ class AESCipher:
         return final_key[:output]
 
     def encrypt(self):
+        """ Encrypt method """
         try:
             salt = Random.new().read(8)
             key_iv = self.bytes_to_key(self.secret, salt, 32+16)
@@ -37,6 +45,7 @@ class AESCipher:
             return None
 
     def decrypt(self):
+        """ Decrypt method """
         try:
             encrypted = b64decode(self.data)
             assert encrypted[0:8] == b"Salted__"

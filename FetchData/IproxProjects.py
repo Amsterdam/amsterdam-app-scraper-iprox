@@ -1,6 +1,6 @@
+""" Fetch iprox projects """
 import requests
 from GenericFunctions.Logger import Logger
-from GenericFunctions.Hashing import Hashing
 from GenericFunctions.TextSanitizers import TextSanitizers
 
 
@@ -25,8 +25,8 @@ class IproxProjects:
                                                                    domain=self.domain,
                                                                    path=self.path,
                                                                    query_params=self.query_params)
-        self.raw_data = list()
-        self.parsed_data = list()
+        self.raw_data = []
+        self.parsed_data = []
 
     def get_data(self):
         """
@@ -35,7 +35,7 @@ class IproxProjects:
         :return: void
         """
         try:
-            result = requests.get(self.url)
+            result = requests.get(self.url, timeout=10)
             self.raw_data = result.json()
         except Exception as error:
             self.logger.error('failed fetching data from {url}: {error}'.format(url=self.url, error=error))
@@ -51,21 +51,25 @@ class IproxProjects:
                 # Using md5 will yield the same result for a given string on repeated iterations, hence an identifier
                 identifier = self.raw_data[i].get('itmidt', None)
                 title = self.raw_data[i].get('title', '').split(':')
-                subtitle = None if len(title) == 1 else TextSanitizers.sentence_case("".join([title[i] for i in range(1, len(title))]))
+                if len(title) != 1:
+                    subtitle = TextSanitizers.sentence_case("".join([title[i] for i in range(1, len(title))]))
+                else:
+                    subtitle = None
+
                 self.parsed_data.append(
                     {
                         'project_type': self.project_type,
                         'identifier': identifier,
-                        'district_id': -1,  # this will be fetched on a successive call...
+                        'district_id': -1,    # this will be fetched on a successive call...
                         'district_name': '',  # this will be fetched on a successive call...
                         'title': title[0],
                         'subtitle': subtitle,
                         'content_html': TextSanitizers.rewrite_html(self.raw_data[i].get('content', '')),
                         'content_text': TextSanitizers.strip_html(self.raw_data[i].get('content', '')),
-                        'images': [],  # these will be fetched on a successive call...
+                        'images': [],         # these will be fetched on a successive call...
                         'publication_date': self.raw_data[i].get('publication_date', ''),
                         'modification_date': self.raw_data[i].get('modification_date', ''),
-                        'source_url': 'https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true'.format(identifier=identifier)
+                        'source_url': f'https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true'
                     }
                 )
             except Exception as error:

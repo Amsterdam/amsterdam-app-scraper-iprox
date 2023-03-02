@@ -1,8 +1,9 @@
-import requests
-import threading
+""" Iprox ingestion """
 import json
-from FetchData.Image import Image
+import threading
+import requests
 from GenericFunctions.Logger import Logger
+from FetchData.Image import Image
 from FetchData.IproxProject import IproxProject
 from FetchData.IproxProjects import IproxProjects
 from FetchData.IproxNews import IproxNews
@@ -36,8 +37,14 @@ class IproxIngestion:
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
-        self.news = IproxNews(backend_host=backend_host, backend_port=backend_port, base_path=base_path, headers=headers)
+        self.image = Image(backend_host=backend_host,
+                           backend_port=backend_port,
+                           base_path=base_path,
+                           headers=headers)
+        self.news = IproxNews(backend_host=backend_host,
+                              backend_port=backend_port,
+                              base_path=base_path,
+                              headers=headers)
         self.paths = {
             'projects': '/projecten/alle-projecten-amsterdam-app',
             # 'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
@@ -46,7 +53,7 @@ class IproxIngestion:
         }
 
     def get_images(self, fpd_details):
-        # Add image objects to the download queue
+        """ Add image objects to the download queue """
         for images in fpd_details['images']:
             for size in images['sources']:
                 image_object = images['sources'][size]
@@ -54,11 +61,12 @@ class IproxIngestion:
                 self.image.queue.put(image_object)
 
     def queue_news(self, fpd_details):
-        # add news_items to the IproxNews.queue for scraping
+        """ add news_items to the IproxNews.queue for scraping """
         for news_item in fpd_details['news']:
             self.news.queue.put({'news_item': news_item, 'project_type': fpd_details['project_type']})
 
     def get_set_project_details(self, item, project_type):
+        """ Get and set project details """
         fpd = IproxProject(item['source_url'], item['identifier'])
         fpd.get_data()
 
@@ -71,7 +79,7 @@ class IproxIngestion:
             url = 'http://{host}:{port}{base_path}/project'.format(host=self.backend_host,
                                                                    port=self.backend_port,
                                                                    base_path=self.base_path)
-            result = requests.post(url, headers=self.headers, json=fpd.details)
+            result = requests.post(url, headers=self.headers, json=fpd.details, timeout=10)
             if result.status_code != 200:
                 self.logger.error(result.text)
                 return None
@@ -86,7 +94,7 @@ class IproxIngestion:
         return None
 
     def get_set_projects(self, project_type):
-        # Set the url path from where to fetch the projects
+        """ Set the url path from where to fetch the projects """
         path = self.paths[project_type]
 
         # Fetch projects and ingest data
@@ -98,15 +106,19 @@ class IproxIngestion:
                                                                 port=self.backend_port,
                                                                 base_path=self.base_path)
 
-        # DEBUG: Add a single project for debugging (comment when done...!)
-        # fpa.parsed_data = [{'project_type': 'projects', 'identifier': '1225399', 'district_id': -1, 'district_name': '', 'title': 'Mosplein, rotonde vernieuwen', 'subtitle': None, 'content_html': '<div><p>2022 - 2024. We gaan de rotonde van het Mosplein opnieuw inrichten.</p></div>', 'content_text': '2022 - 2024. We gaan de rotonde van het Mosplein opnieuw inrichten.', 'images': [], 'publication_date': '2020-09-24', 'modification_date': '2022-10-13', 'source_url': 'https://amsterdam.nl/@1225399/page/?AppIdt=app-pagetype&reload=true'}]
-
         updated = new = failed = 0
         for item in fpa.parsed_data:
-            print('Parsing: https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true title: {title}'.format(identifier=item.get('identifier'), title=item['title']), flush=True)
-
+            # DEBUG: Set title for page you'd like to debug...
+            # if item['title'] != 'Bijlmer Sportcentrum':
+            #     continue
+            print('Parsing ', end='')
+            print(f'https://amsterdam.nl/@{item["identifier"]}/page/?AppIdt=app-pagetype&reload=true ', end='')
+            print(f'title: {item["title"]}', flush=True)
             try:
-                result = requests.get(url, headers=self.headers, params={'identifier': item.get('identifier')})
+                result = requests.get(url,
+                                      headers=self.headers,
+                                      params={'identifier': item.get('identifier')},
+                                      timeout=10)
                 data = json.loads(result.text)
 
                 existing_project = False
@@ -118,10 +130,10 @@ class IproxIngestion:
                     item['images'] = result['images']
                     item['district_id'] = result['district_id']
                     item['district_name'] = result['district_name']
-                    result = requests.post(url, headers=self.headers, json=item)
+                    result = requests.post(url, headers=self.headers, json=item, timeout=10)
                     if result.status_code != 200:
                         self.logger.error(result.text)
-                        return
+                        return {}
 
                     # Keep track of amount of updates/new insertions
                     if existing_project is True:
@@ -130,7 +142,7 @@ class IproxIngestion:
                         new += 1
                 else:
                     payload = {'identifier': item.get('identifier')}
-                    result = requests.delete(url, headers=self.headers, json=payload)
+                    result = requests.delete(url, headers=self.headers, json=payload, timeout=10)
                     if result.status_code != 200:
                         self.logger.error(result.text)
                     else:
@@ -141,7 +153,7 @@ class IproxIngestion:
                 failed += 1
 
         # Get images and IproxNews multi-threaded to speed up the scraping-process
-        threads = list()
+        threads = []
 
         # Fetch news
         print('Fetching news items', flush=True)
@@ -151,7 +163,7 @@ class IproxIngestion:
 
         # Fetch images (queue is filled during project scraping)
         print('Fetching images', flush=True)
-        thread_image = threading.Thread(target=self.image.run, kwargs=({'module': 'Iprox Project Details'}))
+        thread_image = threading.Thread(target=self.image.run, kwargs={'module': 'Iprox Project Details'})
         thread_image.start()
         threads.append(thread_image)
 
@@ -162,7 +174,7 @@ class IproxIngestion:
         return {'new': new, 'updated': updated, 'failed': failed, 'project_type': project_type}
 
     def get_stads_loketten(self):
-        # Scrape StadsLoketten
+        """ Scrape StadsLoketten """
         stads_loketten = IproxStadslokettenScraper(backend_host=self.backend_host,
                                                    backend_port=self.backend_port,
                                                    headers=self.headers)
@@ -170,6 +182,7 @@ class IproxIngestion:
         return {'status': True, 'result': 'scraped stads-loketten'}
 
     def start(self, project_type):
+        """ First scrape projects, then stads-loketten """
         result = {}
         if project_type in ['projects']:
             result = self.get_set_projects(project_type)

@@ -28,6 +28,10 @@ Clone this project and in the root folder of this project run the command below 
     docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.luscinia-solutions.com/backend-iprox:tst-latest
     docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.luscinia-solutions.com/backend-iprox:prd-latest
 
+### Run pylinter
+
+    pylint $(find . -name '*.py' | grep -v -e venv -e migrations -e kladblok)
+
 # Execute
 You can start the Iprox scraper with the command below. If the scraper cannot find the TARGET server within 60 seconds 
 the container stops. Once the whole scraper process is done, this container will stop too. Hence, the docker image is 

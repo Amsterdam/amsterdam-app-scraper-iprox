@@ -1,3 +1,5 @@
+""" Convenience class for calling several hashing libraries (md5, sha1, ...)
+"""
 import hashlib
 
 

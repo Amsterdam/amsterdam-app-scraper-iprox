@@ -1,9 +1,14 @@
+""" Download images from Iprox """
+from queue import Queue
 import base64
+import threading
 import time
 import requests
-import threading
-from queue import Queue
 from GenericFunctions.Logger import Logger
+
+
+class DownloadException(Exception):
+    """ Raised when download fails """
 
 
 class Image:
@@ -30,14 +35,16 @@ class Image:
         self.headers = headers
         self.num_workers = 10
         self.queue = Queue()
-        self.threads = dict()
+        self.threads = {}
 
     def fetch(self, url):
+        """ Fetch image data """
         try:
             # Request image as a stream
-            result = requests.get(url, stream=True)
+            result = requests.get(url, stream=True, timeout=10)
             if result.status_code != 200:
-                raise Exception('Failed downloading image: {url}'.format(url=url))
+                print(f'Failed downloading image: {url}', flush=True)
+                raise DownloadException
 
             # start reading from the stream in chunks of 1024 bytes and append to data
             data = b''
@@ -45,18 +52,20 @@ class Image:
                 data += chunk
             return data
         except Exception as error:
-            self.logger.error('failed fetching image data for {url}: {error}'.format(url=url, error=error))
+            self.logger.error(f'failed fetching image data for {url}: {error}')
             return None
 
     def save_image(self, item):
+        """ Save images to backend via iprox-ingestion routes """
         extension = item['filename'].split('.')[-1]
-        item['mime_type'] = 'image/{extension}'.format(extension=extension)
-        url = 'http://{host}:{port}{base_path}/image'.format(host=self.host, port=self.port, base_path=self.base_path)
-        result = requests.post(url, headers=self.headers, json=item)
+        item['mime_type'] = f'image/{extension}'
+        url = f'http://{self.host}:{self.port}{self.base_path}/image'
+        result = requests.post(url, headers=self.headers, json=item, timeout=10)
         if result.status_code != 200:
             self.logger.error(result.text)
 
     def worker(self, worker_id):
+        """ Worker for downloading image data (multi-threaded) """
         count = 0
         while not self.queue.empty():
             item = self.queue.get_nowait()
@@ -65,19 +74,24 @@ class Image:
             item['identifier'] = item.pop('image_id')
 
             # Check if we already have this image on API Server, Prevent API-bandwidth saturation
-            url = 'http://{host}:{port}{base_path}/image'.format(host=self.host, port=self.port, base_path=self.base_path)
-            result = requests.get(url, headers=self.headers, params={'identifier': item['identifier']}).json()
+            url = f'http://{self.host}:{self.port}{self.base_path}/image'
+            result = requests.get(url,
+                                  headers=self.headers,
+                                  params={'identifier': item['identifier']},
+                                  timeout=10).json()
 
             if result['status'] is False:
                 image_data = self.fetch(item['url'])
                 if image_data is not None:
                     item['data'] = base64.b64encode(image_data).decode('utf-8')
                     self.save_image(item)
+
             count += 1
-        else:
-            self.threads[worker_id]['result'] = '\tWorker {worker_id} out of jobs. Images processed: {count}'.format(worker_id=worker_id, count=count)
+
+        self.threads[worker_id]['result'] = f'\tWorker {worker_id} out of jobs. Images processed: {count}'
 
     def run(self, module='Undefined'):
+        """ Call workers """
         now = time.time()
         self.logger.info('Processing {num} images for {module}'.format(num=self.queue.qsize(), module=module))
 
@@ -88,8 +102,8 @@ class Image:
             thread.start()
 
         # Stop worker threads
-        for key in self.threads:
-            self.threads[key]['thread'].join()
-            self.logger.info(self.threads[key]['result'])
+        for _, thread in self.threads.items():
+            thread['thread'].join()
+            self.logger.info(thread['result'])
 
         self.logger.info('Processing done in {elapsed:.2f} seconds'.format(elapsed=time.time() - now))

@@ -1,6 +1,7 @@
 bs4
 pybase64
 pycryptodome
+pylint
 requests
 wheel
 
