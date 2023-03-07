@@ -4,6 +4,7 @@ import base64
 import threading
 import time
 import requests
+from requests.exceptions import JSONDecodeError
 from GenericFunctions.Logger import Logger
 
 
@@ -75,17 +76,19 @@ class Image:
 
             # Check if we already have this image on API Server, Prevent API-bandwidth saturation
             url = f'http://{self.host}:{self.port}{self.base_path}/image'
-            result = requests.get(url,
-                                  headers=self.headers,
-                                  params={'identifier': item['identifier']},
-                                  timeout=10).json()
+            try:
+                result = requests.get(url,
+                                      headers=self.headers,
+                                      params={'identifier': item['identifier']},
+                                      timeout=10).json()
 
-            if result['status'] is False:
-                image_data = self.fetch(item['url'])
-                if image_data is not None:
-                    item['data'] = base64.b64encode(image_data).decode('utf-8')
-                    self.save_image(item)
-
+                if result['status'] is False:
+                    image_data = self.fetch(item['url'])
+                    if image_data is not None:
+                        item['data'] = base64.b64encode(image_data).decode('utf-8')
+                        self.save_image(item)
+            except JSONDecodeError as error:
+                self.logger.error(f'Failed downloading image: {url} {error}')
             count += 1
 
         self.threads[worker_id]['result'] = f'\tWorker {worker_id} out of jobs. Images processed: {count}'

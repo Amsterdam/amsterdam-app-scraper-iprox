@@ -2,6 +2,7 @@
 import base64
 from queue import Queue
 import requests
+from requests.exceptions import JSONDecodeError
 from GenericFunctions.Hashing import Hashing
 from GenericFunctions.Logger import Logger
 from GenericFunctions.TextSanitizers import TextSanitizers
@@ -80,8 +81,10 @@ class IproxNews:
         try:
             result = requests.get(url, timeout=10)
             return result.json()
+        except JSONDecodeError:
+            self.logger.error(f'failed fetching data from {url}: this is not json!')
         except Exception as error:
-            self.logger.error('failed fetching data from {url}: {error}'.format(url=url, error=error))
+            self.logger.error(f'failed fetching data from {url}: {error}')
         return None
 
     def get_set_asset(self, identifier, mime_type, url):
@@ -255,7 +258,7 @@ class IproxNews:
             news_item_data = self.scraper(job['news_item'])
             print(f'Parsing News: {job["news_item"]["url"]}', flush=True)
 
-            if news_item_data is not None:
+            if news_item_data:  # Check if news_item_data is not an empty dict.
                 news_item_data['project_type'] = job['project_type']
                 self.save_news_item(news_item_data)
                 self.get_images(news_item_data)
