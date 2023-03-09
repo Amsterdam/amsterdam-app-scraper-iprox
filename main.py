@@ -3,6 +3,7 @@
 """
 import sys
 import os
+import datetime
 from uuid import uuid4
 import requests
 from FetchData.IproxIngestion import IproxIngestion
@@ -16,6 +17,9 @@ def main():
     """
     # Setup logger
     logger = Logger()
+
+    # Set data/time stamp when scraper started, used for garbage collection
+    scraper_started = str(datetime.datetime.now())
 
     # Get environment parameters: BACKEND host and port
     backend_host = os.getenv('TARGET', 'api-server')
@@ -40,7 +44,10 @@ def main():
         # Call Garbage collector
         if garbage_collect is True:
             url = 'http://{host}:{port}/api/v1/ingest/garbagecollector'.format(host=backend_host, port=backend_port)
-            result = requests.get(url, headers=headers, params={'project_type': project_type}, timeout=10)
+            result = requests.get(url,
+                                  headers=headers,
+                                  params={'project_type': project_type, 'date': scraper_started},
+                                  timeout=300)
             if result.status_code != 200:
                 logger.error(result.text)
 

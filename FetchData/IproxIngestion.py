@@ -109,7 +109,7 @@ class IproxIngestion:
         updated = new = failed = 0
         for item in fpa.parsed_data:
             # DEBUG: Set title for page you'd like to debug...
-            # if item['title'] != 'Amstel III':
+            # if item['title'] != 'Sluisbuurt op Zeeburgereiland':
             #     continue
             print('Parsing ', end='')
             print(f'https://amsterdam.nl/@{item["identifier"]}/page/?AppIdt=app-pagetype&reload=true ', end='')
