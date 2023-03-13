@@ -67,7 +67,7 @@ class IproxIngestion:
 
     def get_set_project_details(self, item, project_type):
         """ Get and set project details """
-        fpd = IproxProject(item['source_url'], item['identifier'])
+        fpd = IproxProject(item['source_url'], item['identifier'], item['title'])
         fpd.get_data()
 
         # Skip news items/articles etc...
@@ -110,7 +110,7 @@ class IproxIngestion:
         for item in fpa.parsed_data:
             # DEBUG: Set title for page you'd like to debug...
             # if item['title'] != 'Sluisbuurt op Zeeburgereiland':
-            #     continue
+            #    continue
             print('Parsing ', end='')
             print(f'https://amsterdam.nl/@{item["identifier"]}/page/?AppIdt=app-pagetype&reload=true ', end='')
             print(f'title: {item["title"]}', flush=True)

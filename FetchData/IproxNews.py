@@ -1,6 +1,7 @@
 """ Fetch news articles from the Iprox system """
 import base64
 from queue import Queue
+import json
 import requests
 from requests.exceptions import JSONDecodeError
 from GenericFunctions.Hashing import Hashing
@@ -129,6 +130,7 @@ class IproxNews:
                                                                            month=date[4:6],
                                                                            day=date[6:8])
 
+
         news_item_data['identifier'] = news_item.get('identifier')
         news_item_data['project_identifier'] = news_item.get('project_identifier')
         news_item_data['url'] = news_item.get('url')
@@ -232,12 +234,16 @@ class IproxNews:
 
         return news_item_data
 
-    def save_news_item(self, news_item_data):
+    def save_news_item(self, news_item_data, message):
         """ Post data to backend server """
         url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/news'
-        result = requests.post(url, headers=self.headers, json=news_item_data, timeout=10)
-        if result.status_code != 200:
-            self.logger.error(result.text)
+        response = requests.post(url, headers=self.headers, json=news_item_data, timeout=3600)
+        if response.status_code != 200:
+            self.logger.error(response.text)
+            print(message + f" Failed ingesting {response.text}")
+        else:
+            response_json = json.loads(response.text)
+            print(message + f' {response_json["result"]}', flush=True)
 
     def get_images(self, news_item_data):
         """ Add image objects to the download queue """
@@ -256,11 +262,13 @@ class IproxNews:
             # Get queued news_items and scrape data
             job = self.queue.get()
             news_item_data = self.scraper(job['news_item'])
-            print(f'Parsing News: {job["news_item"]["url"]}', flush=True)
+            message = f'Parsing News: {job["news_item"]["project_title"]} ' \
+                      f'{news_item_data.get("publication_date", "no publication date")}'
+
 
             if news_item_data:  # Check if news_item_data is not an empty dict.
                 news_item_data['project_type'] = job['project_type']
-                self.save_news_item(news_item_data)
+                self.save_news_item(news_item_data, message)
                 self.get_images(news_item_data)
 
         # Download images for each scraped news item
