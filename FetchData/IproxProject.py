@@ -21,10 +21,11 @@ class IproxProject:
             https://amsterdam.nl/@{itmidt}/page/?AppIdt=app-pagetype&reload=true    (single page)
     """
 
-    def __init__(self, url, identifier):
+    def __init__(self, url, identifier, title):
         self.logger = Logger()
         self.identifier = identifier
         self.url = '{url}?AppIdt=app-pagetype&reload=true'.format(url=url)
+        self.project_title = title
         self.raw_data = {}
         self.page = {}
         self.page_type = ''
@@ -463,7 +464,8 @@ class IproxProject:
         item = {
             'identifier': data.get('itmidt'),
             'project_identifier': self.identifier,
-            'url': url
+            'url': url,
+            'project_title': self.project_title
         }
         result = requests.get(url, timeout=10)
         if result.status_code == 200:
