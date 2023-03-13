@@ -1,15 +1,14 @@
+""" Fetch news articles from the Iprox system """
 import base64
-import json
-import re
-import requests
-import datetime
 from queue import Queue
+import json
+import requests
+from requests.exceptions import JSONDecodeError
+from GenericFunctions.Hashing import Hashing
 from GenericFunctions.Logger import Logger
 from GenericFunctions.TextSanitizers import TextSanitizers
 from FetchData.Image import Image
 from FetchData.IproxRecursion import IproxRecursion
-from GenericFunctions.Hashing import Hashing
-# from models import Assets, News
 
 
 class IproxNews:
@@ -26,7 +25,10 @@ class IproxNews:
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host, backend_port=backend_port, base_path=self.base_path, headers=headers)
+        self.image = Image(backend_host=backend_host,
+                           backend_port=backend_port,
+                           base_path=self.base_path,
+                           headers=headers)
         self.sanitizer = TextSanitizers()
         self.hash = Hashing()
         self.queue = Queue()
@@ -35,6 +37,7 @@ class IproxNews:
 
     @staticmethod
     def skeleton():
+        """ return skeleton dict """
         return {
             'identifier': '',
             'project_identifier': '',
@@ -77,18 +80,25 @@ class IproxNews:
         :return: json or None
         """
         try:
-            result = requests.get(url)
+            result = requests.get(url, timeout=10)
             return result.json()
+        except JSONDecodeError:
+            self.logger.error(f'failed fetching data from {url}: this is not json!')
         except Exception as error:
-            self.logger.error('failed fetching data from {url}: {error}'.format(url=url, error=error))
+            self.logger.error(f'failed fetching data from {url}: {error}')
         return None
 
     def get_set_asset(self, identifier, mime_type, url):
+        """ Downloads assets from Iprox server (pdf, images) """
+
         # Check if we already have this asset on API Server, Prevent API-bandwidth saturation
-        url = 'http://{host}:{port}{base_path}/asset'.format(host=self.backend_host, port=self.backend_port, base_path=self.base_path)
-        result_api_server_get = requests.get(url, headers=self.headers, params={'identifier': identifier}).json()
+        url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/asset'
+        result_api_server_get = requests.get(url,
+                                             headers=self.headers,
+                                             params={'identifier': identifier},
+                                             timeout=10).json()
         if result_api_server_get['status'] is False:
-            asset_result = requests.get(url)
+            asset_result = requests.get(url, timeout=10)
             if asset_result.status_code == 200:
                 payload = {
                     'identifier': identifier,
@@ -96,18 +106,20 @@ class IproxNews:
                     'mime_type': mime_type,
                     'data': base64.b64encode(asset_result.content)
                 }
-                result_api_server_post = requests.post(url, headers=self.headers, json=payload)
+                result_api_server_post = requests.post(url, headers=self.headers, json=payload, timeout=10)
                 if result_api_server_post.status_code != 200:
                     self.logger.error(result_api_server_post.text)
 
     def filter_results(self, data):
+        """ Get filtered results from the iprox system """
         iprox = IproxRecursion()
         return iprox.filter(data, [], targets=self.page_targets)
 
     def scraper(self, news_item):
+        """ Actual scraper logic, create object, scrape data, populate object, save """
         raw_data = self.get_data(news_item.get('url'))
         if raw_data is None or raw_data == {}:
-            return
+            return {}
 
         news_item_data = self.skeleton()
 
@@ -118,6 +130,7 @@ class IproxNews:
                                                                            month=date[4:6],
                                                                            day=date[6:8])
 
+
         news_item_data['identifier'] = news_item.get('identifier')
         news_item_data['project_identifier'] = news_item.get('project_identifier')
         news_item_data['url'] = news_item.get('url')
@@ -125,7 +138,7 @@ class IproxNews:
 
         filtered_results = self.filter_results(page.get('cluster', []))
 
-        for i in range(0, len(filtered_results), 1):
+        for i in range(0, len(filtered_results), 1):  # pylint: disable=too-many-nested-blocks
             if filtered_results[i].get('Gegevens', None) is not None:
                 for j in range(0, len(filtered_results[i]['Gegevens']), 1):
                     # Get summary for this news item
@@ -195,8 +208,7 @@ class IproxNews:
                                 'sources': {
                                     size: {
                                         'url': '{domain}/publish/{location}'.format(domain=domain, location=location),
-                                        'image_id': self.hash.make_md5_hash('{domain}{location}'.format(domain=domain,
-                                                                                                        location=location)),
+                                        'image_id': self.hash.make_md5_hash(f'{domain}{location}'),
                                         'filename': location.split('/')[-1],
                                         'description': ''}
                                 }
@@ -222,29 +234,42 @@ class IproxNews:
 
         return news_item_data
 
-    def save_news_item(self, news_item_data):
-        url = 'http://{host}:{port}{base_path}/news'.format(host=self.backend_host, port=self.backend_port, base_path=self.base_path)
-        result = requests.post(url, headers=self.headers, json=news_item_data)
-        if result.status_code != 200:
-            self.logger.error(result.text)
+    def save_news_item(self, news_item_data, message):
+        """ Post data to backend server """
+        url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/news'
+        response = requests.post(url, headers=self.headers, json=news_item_data, timeout=3600)
+        if response.status_code != 200:
+            self.logger.error(response.text)
+            print(message + f" Failed ingesting {response.text}")
+        else:
+            response_json = json.loads(response.text)
+            print(message + f' {response_json["result"]}', flush=True)
 
     def get_images(self, news_item_data):
-        # Add image objects to the download queue
-        for images in news_item_data['images']:
-            for size in images['sources']:
-                image_object = images['sources'][size]
-                image_object['size'] = size
-                self.image.queue.put(image_object)
+        """ Add image objects to the download queue """
+        if 'images' in news_item_data:
+            for images in news_item_data['images']:
+                for size in images['sources']:
+                    image_object = images['sources'][size]
+                    image_object['size'] = size
+                    self.image.queue.put(image_object)
+        else:
+            print('No images for news item')
 
     def run(self):
+        """ Keep getting jobs from a queue until the queue is empty. Scrape each item from the queue """
         while not self.queue.empty():
             # Get queued news_items and scrape data
             job = self.queue.get()
             news_item_data = self.scraper(job['news_item'])
-            if news_item_data is not None:
+            message = f'Parsing News: {job["news_item"]["project_title"]} ' \
+                      f'{news_item_data.get("publication_date", "no publication date")}'
+
+
+            if news_item_data:  # Check if news_item_data is not an empty dict.
                 news_item_data['project_type'] = job['project_type']
-                self.save_news_item(news_item_data)
+                self.save_news_item(news_item_data, message)
                 self.get_images(news_item_data)
-        else:
-            # Download images for each scraped news item
-            self.image.run(module='Iprox News items')
+
+        # Download images for each scraped news item
+        self.image.run(module='Iprox News items')

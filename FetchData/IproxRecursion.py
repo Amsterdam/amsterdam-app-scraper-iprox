@@ -1,9 +1,14 @@
+""" Get data from iprox """
+
+
 class IproxRecursion:
     """ A recursive algorithm to search through IPROX data
         It gets a list of target strings used as a 'stop' condition to (ex/in-)clude the tree from recursion
     """
 
     def filter(self, data, result, targets=None, veld=None):
+        """ Filter the data from the iprox json based on recursion """
+
         # Iprox subtrees are either lists or dictionaries
         if isinstance(data, dict):
             if data.get('Nam') in targets:

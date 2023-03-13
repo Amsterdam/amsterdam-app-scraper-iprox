@@ -1,3 +1,6 @@
+""" Fetch all project details from IPROX-endpoint and convert the data into a suitable format. The format is
+    described in: amsterdam_app_api.models.Projects
+"""
 import copy
 import json
 import requests
@@ -17,12 +20,14 @@ class IproxProject:
             https://amsterdam.nl/@{itmidt}/page/?new_json=true&pager_rows=1000      (list of pages)
             https://amsterdam.nl/@{itmidt}/page/?AppIdt=app-pagetype&reload=true    (single page)
     """
-    def __init__(self, url, identifier):
+
+    def __init__(self, url, identifier, title):
         self.logger = Logger()
         self.identifier = identifier
         self.url = '{url}?AppIdt=app-pagetype&reload=true'.format(url=url)
-        self.raw_data = dict()
-        self.page = dict()
+        self.project_title = title
+        self.raw_data = {}
+        self.page = {}
         self.page_type = ''
 
         # Data model
@@ -38,7 +43,7 @@ class IproxProject:
                 'timeline': {}
             },
             'coordinates': {'lon': None, 'lat': None},
-            'contacts': [], # [{'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}, ...]
+            'contacts': [],  # [{'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}, ...]
             'district_id': -1,
             'district_name': '',
             'images': [
@@ -113,7 +118,7 @@ class IproxProject:
         :return: void
         """
         try:
-            result = requests.get(self.url)
+            result = requests.get(self.url, timeout=10)
             self.raw_data = result.json()
             item = self.raw_data.get('item', None)
             if item is None:
@@ -129,6 +134,8 @@ class IproxProject:
             self.logger.error('failed fetching data from {url}: {error}'.format(url=self.url, error=error))
 
     def parse_data(self):
+        """ Call different methods to parse the iprox json data """
+
         # Based on page-type the data is parsed differently (e.g. news, normal page, ...)
         if self.page.get('pagetype', '') == 'subhome':
             self.parse_page(self.page.get('cluster', []))
@@ -144,11 +151,15 @@ class IproxProject:
         # Set page identifier and title
         self.details['page_id'] = int(self.page.get('PagIdt', -1))
         title = self.page.get('title', '').split(':')
-        subtitle = None if len(title) == 1 else TextSanitizers.sentence_case("".join([title[i] for i in range(1, len(title))]))
+        if len(title) != 1:
+            subtitle = TextSanitizers.sentence_case("".join([title[i] for i in range(1, len(title))]))
+        else:
+            subtitle = None
         self.details['title'] = title[0]
         self.details['subtitle'] = subtitle
 
     def parse_page(self, dicts):
+        """ Parse the iprox data """
         iprox = IproxRecursion()
         filtered_dicts = iprox.filter(dicts, [], targets=self.page_targets)
 
@@ -185,20 +196,32 @@ class IproxProject:
             if filtered_dicts[i].get('Koppeling', None) is not None:
                 set_timeline = False
                 set_news = False
+                set_work = False
                 url = ''
                 for j in range(0, len(filtered_dicts[i]['Koppeling']), 1):
                     if filtered_dicts[i]['Koppeling'][j].get('Nam', '') == 'App categorie':
-                        if filtered_dicts[i]['Koppeling'][j].get('SelAka', '') == 'when-timeline':
+                        if filtered_dicts[i]['Koppeling'][j].get('SelAka', '') in ['when-timeline', 'when']:
                             set_timeline = True
-                        elif filtered_dicts[i]['Koppeling'][j].get('SelAka', '') == 'news':
+
+                        if filtered_dicts[i]['Koppeling'][j].get('SelAka', '') == 'news':
                             set_news = True
+
+                        if filtered_dicts[i]['Koppeling'][j].get('SelAka', '') == 'work':
+                            set_work = True
+
+                        # print(filtered_dicts[i]['Koppeling'][j].get('SelAka'), flush=True)
+
                     if filtered_dicts[i]['Koppeling'][j].get('Nam', '') == 'Link':
                         url = filtered_dicts[i]['Koppeling'][j].get('link', {}).get('Url', '')
 
                 if set_timeline is True and url != '':
                     self.get_timeline(url)
-                elif set_news is True and url != '':
+
+                if set_news is True and url != '':
                     self.get_news_items(url)
+
+                if set_work is True and url != '':
+                    self.get_work_items(url)
 
             # Set Coordinates (if available).
             # Note: EPSG:4326 is an identifier of WGS84. WGS84 comprises a standard coordinate frame for the Earth
@@ -211,9 +234,10 @@ class IproxProject:
                     self.set_geo_data(filtered_dicts[i]['Coordinaten']['Txt']['geo']['json'])
 
             # Get district name and identifier
-            if filtered_dicts[i].get('Kenmerken', None) is not None and filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
-                self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
-                self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
+            if filtered_dicts[i].get('Kenmerken', None) is not None:
+                if filtered_dicts[i].get('Kenmerken').get('Src') == 'Stadsdeel':
+                    self.details['district_id'] = int(filtered_dicts[i].get('Kenmerken').get('item').get('SelItmIdt'))
+                    self.details['district_name'] = filtered_dicts[i].get('Kenmerken').get('Wrd')
 
             if filtered_dicts[i].get('Titel', None) is not None and isinstance(filtered_dicts[i]['Titel'], list):
                 result = {'title': '', 'html': '', 'text': ''}
@@ -241,6 +265,7 @@ class IproxProject:
                 self.set_contact(filtered_dicts[i]['Contact'])
 
     def set_contact(self, data):
+        """ Set contact data """
         contact = {'name': None, 'position': None, 'email': None, 'phone': None, 'address': None}
         if isinstance(data, dict):
             data = [data]
@@ -259,21 +284,25 @@ class IproxProject:
         self.details['contacts'].append(contact)
 
     def set_text_result(self, data, app_category):
+        """ Set html and txt result to dict """
         if data['html'] != '':
             if app_category in self.details['body']:
                 self.details['body'][app_category].append(data)
             else:
                 self.details['body'][app_category] = [data]
 
-    """ TIMELINE-BEGIN """
+    #
+    # TIMELINE-BEGIN
+    #
 
     def filter_timeline(self, data):
+        """ Filter timeline data """
         iprox = IproxRecursion()
         filtered_results = iprox.filter(data, [], targets=self.timeline_targets)
 
-        timeline_items = list()
-        gegevens = dict()
-        inhoud = dict()
+        timeline_items = []
+        gegevens = {}
+        inhoud = {}
 
         timeline_item = {'Subitems': []}
         for i in range(0, len(filtered_results), 1):
@@ -295,44 +324,60 @@ class IproxProject:
 
             if filtered_results[i].get('Subitem', None):
                 timeline_item['Subitems'].append(filtered_results[i].get('Subitem', {}).get('veld', []))
-        else:
-            if 'Eigenschappen' in timeline_item:
-                timeline_items.append(copy.deepcopy(timeline_item))
+
+        if 'Eigenschappen' in timeline_item:
+            timeline_items.append(copy.deepcopy(timeline_item))
 
         self.set_timeline(gegevens, inhoud, timeline_items)
 
     def set_timeline(self, gegevens, inhoud, timeline_items):
+        """ Set timeline data to dict """
+
         def parse_subitems(subitems):
             content = []
             if isinstance(subitems, dict):
                 subitems = [subitems]
 
-            for i in range(0, len(subitems), 1):
+            for i in range(0, len(subitems), 1):  # pylint: disable=too-many-nested-blocks
                 subitem = subitems[i]
                 if not isinstance(subitem, dict):
-                    continue  # We expect a list!
+                    continue  # We expect a dictionary!
 
-                content_item = {'title': '', 'body': {'text': '', 'html': ''}}
-
-                if isinstance(subitem.get('Eigenschappen', []), dict):
-                    subitem['Eigenschappen'] = [subitem['Eigenschappen']]
-
-                for i in range(0, len(subitem.get('Eigenschappen', [])), 1):
-                    if subitem['Eigenschappen'][i].get('Nam', '') == 'Titel':
+                if isinstance(subitem.get('Eigenschappen'), dict):
+                    for _sub_items in subitem.get('Subitems', []):
                         try:
-                            content_item['title'] = subitem['Eigenschappen'][i].get('Wrd', '')
+                            content_item = {'title': '', 'body': {'text': '', 'html': ''}}
+                            # Weird iprox humor ... Not all items are list in sub-items of time-line
+                            if isinstance(_sub_items, dict):
+                                _sub_items = [_sub_items]
+
+                            for j in range(0, len(_sub_items)):
+                                if _sub_items[j].get('Nam', '') == 'Titel':
+                                    try:
+                                        content_item['title'] = _sub_items[j].get('Wrd', '')
+                                    except Exception as error:
+                                        print(error, flush=True)
+                                if _sub_items[j].get('Nam', '') in ['Beschrijving', 'Inleiding']:
+                                    try:
+                                        html = _sub_items[j].get('Txt', '')
+                                        content_item['body']['html'] = TextSanitizers.rewrite_html(html)
+                                        content_item['body']['text'] = TextSanitizers.strip_html(html)
+                                    except Exception as error:
+                                        print(error, flush=True)
+                            content.append(content_item)
                         except Exception as error:
                             print(error, flush=True)
-
-                    if subitem['Eigenschappen'][i].get('Nam', '') in ['Beschrijving', 'Inleiding']:
-                        try:
-                            html = subitem['Eigenschappen'][i].get('Txt', '')
-                            content_item['body']['html'] = TextSanitizers.rewrite_html(html)
-                            content_item['body']['text'] = TextSanitizers.strip_html(html)
-                        except Exception as error:
-                            print(error, flush=True)
-
-                content.append(content_item)
+                else:
+                    content_item = {'title': None, 'body': {'text': '', 'html': ''}}
+                    try:
+                        for j in range(0, len(subitem['Eigenschappen'])):
+                            if subitem['Eigenschappen'][j].get('Nam', '') in ['Beschrijving', 'Inleiding']:
+                                html = subitem['Eigenschappen'][j].get('Txt', '')
+                                content_item['body']['html'] = TextSanitizers.rewrite_html(html)
+                                content_item['body']['text'] = TextSanitizers.strip_html(html)
+                        content.append(content_item)
+                    except Exception as error:
+                        print(error, flush=True)
             return content
 
         def parse_instellingen(instellingen):
@@ -361,7 +406,8 @@ class IproxProject:
             },
             'items': []
         }
-        for timeline_item in timeline_items:
+
+        for timeline_item in timeline_items:  # pylint: disable=too-many-nested-blocks
             item = {}
             for key in timeline_item:
                 # Get content items
@@ -383,101 +429,141 @@ class IproxProject:
                     item['progress'] = result['progress']
                     item['collapsed'] = result['collapsed']
 
+            # item = {
+            #     'title': '2021',
+            #     'progress': 'Afgelopen, Huidig, ...',
+            #     'collapsed': bool,
+            #     'content': [{'title': 'dec...', 'body': {'text': '', 'html': ''}}]
+            # }
+
             timeline['items'].append(item)
         self.details['body']['timeline'] = timeline
 
     def get_timeline(self, url):
+        """ Retrieve timeline data """
         try:
-            result = requests.get('{url}?AppIdt=app-pagetype&reload=true'.format(url=url))
+            self.logger.info(f'\tFound Time-line: {url}')
+            result = requests.get(f'{url}?AppIdt=app-pagetype&reload=true', timeout=10)
             raw_data = result.json()
             clusters = raw_data.get('item', {}).get('page', {}).get('cluster', [])
             self.filter_timeline(clusters)
         except Exception as error:
-            self.logger.error('failed fetching timeline from data: {error} {identifier}'.format(error=error, identifier=self.identifier))
+            self.logger.error(f'\tfailed fetching timeline from data: {error} {self.identifier}')
 
-    """ TIMELINE-END """
-
-    """ NEWS-BEGIN """
+    #
+    # TIMELINE-END
+    #
+    #
+    #
+    # NEWS-BEGIN
+    #
 
     def set_news_item(self, data):
-        url = 'https://amsterdam.nl/@{identifier}/page/?AppIdt=app-pagetype&reload=true'.format(identifier=data.get('itmidt'))
+        """ Add scraped item to dict """
+        url = f'https://amsterdam.nl/@{data.get("itmidt")}/page/?AppIdt=app-pagetype&reload=true'
         item = {
             'identifier': data.get('itmidt'),
             'project_identifier': self.identifier,
-            'url': url
+            'url': url,
+            'project_title': self.project_title
         }
-        result = requests.get(url)
+        result = requests.get(url, timeout=10)
         if result.status_code == 200:
             self.details['news'].append(item)
 
     def get_news_items(self, url):
+        """ Get news item from iprox """
         try:
-            self.logger.info('Found news item: {url}?new_json=true'.format(url=url))
-            result = requests.get('{url}?new_json=true'.format(url=url))
+            result = requests.get('{url}?new_json=true'.format(url=url), timeout=10)
             raw_data = result.json()
+            self.logger.info(f'\tFound news {len(raw_data)} item(s): {url}?new_json=true')
             if isinstance(raw_data, list) and len(raw_data) > 0:
                 for i in range(0, len(raw_data), 1):
                     self.set_news_item(raw_data[i])
         except Exception as error:
-            self.logger.error('failed fetching news from data: {error}'.format(url=self.url, error=error))
+            self.logger.error(f'\tfailed fetching news from data: {self.url} {error}')
 
-    """ NEWS-END """
+    #
+    # NEWS-END
+    #
+
+    #
+    # WORK begin
+    #
+
+    def get_work_items(self, url):
+        """ Get news item from iprox """
+        try:
+            self.logger.info('\tFound work item: {url}?new_json=true'.format(url=url))
+            result = requests.get('{url}?new_json=true'.format(url=url), timeout=10)
+            raw_data = result.json()
+            if isinstance(raw_data, list) and len(raw_data) > 0:
+                for i in range(0, len(raw_data), 1):
+                    self.details['body']['work'].append({
+                        'text': TextSanitizers.strip_html(raw_data[i].get('content')),
+                        'html': raw_data[i].get('content'),
+                        'title': raw_data[i].get('title')
+                    })
+        except Exception as error:
+            self.logger.error(f'\tfailed fetching work from data: {self.url} {error}')
+
+    #
+    # WORK-END
+    #
 
     def set_geo_data(self, json_data):
+        """ Add gps data to project and news data """
         try:
             geo_data = [x for x in json_data if x['type'] == 'EPSG:4326'][0]
             data = json.loads(geo_data['_'])
             coordinates = data['features'][0]['geometry']['coordinates']
             self.details['coordinates'] = {'lon': float(coordinates[0]), 'lat': float(coordinates[1])}
         except Exception as error:
-            self.logger.error('failed fetching coordinates from data: {error}'.format(url=self.url, error=error))
+            self.logger.error(f'failed fetching coordinates from data: {self.url} {error}')
 
     @staticmethod
     def set_images(dicts):
+        """ Extract image locations from iprox data """
         domain = 'https://www.amsterdam.nl'
-        all_images = list()
-        images = dict()
+        all_images = []
+        images = {}
 
         # If we're dealing with a list of 'Afbeeldingen'
-        if isinstance(dicts.get('Afbeelding'), list):
-            for i in range(0, len(dicts.get('Afbeelding', [])), 1):
-                # If the 'Nam' equals 'Afbeeldingen' there are most likely actual images embedded.
-                if dicts['Afbeelding'][i].get('Nam', '') == 'Afbeelding':
-                    for image in dicts['Afbeelding'][i].get('asset', {}):
-                        url = ''.join([domain, image.get('Src', {}).get('_', '')])
-                        key = image.get('Src').get('_').split('/')[-2]
-                        images[key] = {
-                            'url': url,
-                            'image_id': Hashing.make_md5_hash(url),
-                            'filename': image.get('FilNam', ''),
-                            'description': ''
-                        }
+        _images_data = dicts.get('Afbeelding')
+        if isinstance(_images_data, dict):
+            _images_data = [_images_data]
 
-                    images['orig'] = {
-                        'url': ''.join([domain, dicts['Afbeelding'][i].get('Src', {}).get('_', '')]),
-                        'image_id': Hashing.make_md5_hash(''.join([domain, dicts['Afbeelding'][i].get('Src', {}).get('_', '')])),
-                        'filename': dicts['Afbeelding'][i].get('FilNam', ''),
+        for i in range(0, len(_images_data), 1):
+            # If the 'Nam' equals 'Afbeeldingen' there are most likely actual images embedded.
+            if _images_data[i].get('Nam', '') == 'Afbeelding':
+                largest_image = 0
+                for image in _images_data[i].get('asset', {}):
+                    url = ''.join([domain, image.get('Src', {}).get('_', '')])
+                    key = image.get('Src').get('_').split('/')[-2]
+                    images[key] = {
+                        'url': url,
+                        'image_id': Hashing.make_md5_hash(url),
+                        'filename': image.get('FilNam', ''),
                         'description': ''
                     }
-                    all_images.append({'type': '', 'sources': images})
 
-        # If we're dealing with a dict of 'Afbeeldingen'
-        if isinstance(dicts.get('Afbeelding'), dict):
-            for image in dicts['Afbeelding'].get('asset', {}):
-                url = ''.join([domain, image.get('Src', {}).get('_', '')])
-                key = image.get('Src').get('_').split('/')[-2]
-                images[key] = {
-                    'url': url,
-                    'image_id': Hashing.make_md5_hash(url),
-                    'filename': image.get('FilNam', ''),
-                    'description': ''
-                }
-            images['orig'] = {
-                'url': ''.join([domain, dicts['Afbeelding'].get('Src', {}).get('_', '')]),
-                'image_id': Hashing.make_md5_hash(''.join([domain, dicts['Afbeelding'].get('Src', {}).get('_', '')])),
-                'filename': dicts['Afbeelding'].get('FilNam', ''),
-                'description': ''
-            }
-            all_images.append({'type': '', 'sources': images})
+                    # Find the largest image and replace 'orig' if 'orig' is missing...
+                    if key != 'orig' and int(key.split('px')[0]) > largest_image:
+                        largest_image = int(key.split('px')[0])
+
+                if 'orig' not in images:
+                    _url = ''.join([domain, _images_data[i].get('Src', {}).get('_', '')])
+                    images['orig'] = {
+                        'url': _url,
+                        'image_id': Hashing.make_md5_hash(_url),
+                        'filename': _images_data[i].get('FilNam', ''),
+                        'description': ''
+                    }
+
+                # Replace 'orig' with the largest image if 'orig' is missing...
+                if images['orig']['filename'] == '':
+                    images['orig'] = dict(images[f'{largest_image}px'])
+
+                all_images.append({'type': '', 'sources': images})
 
         return all_images

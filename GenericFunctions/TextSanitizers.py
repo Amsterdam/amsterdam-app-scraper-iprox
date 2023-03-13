@@ -1,3 +1,4 @@
+""" Simple class file for stripping HTML tags from strings, with some magic for the Iprox web-pages """
 import re
 from bs4 import BeautifulSoup
 
@@ -16,7 +17,7 @@ class TextSanitizers:
 
         # Use BeautifulSoup to strip any html tags
         soup = BeautifulSoup(html, features='html.parser')
-        text = soup.get_text(separator=u'\n\n', strip=True)
+        text = soup.get_text(separator='\n\n', strip=True)
 
         # Cleanup text a bit
         regex_1 = re.compile('\.Zie ook')

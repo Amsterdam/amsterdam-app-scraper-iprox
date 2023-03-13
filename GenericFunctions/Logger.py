@@ -1,3 +1,5 @@
+""" Convenience class for logging facility
+"""
 import logging
 import os
 
@@ -11,18 +13,21 @@ class Logger:
         self.debug_enabled = os.getenv('DEBUG', 'false').lower() == 'true'
 
     def info(self, record):
+        """ Log level INFO """
         if self.debug_enabled is True:
             print(record, flush=True)
         else:
             self.logger.info(record)
 
     def error(self, record):
+        """ Log level ERROR """
         if self.debug_enabled is True:
             print(record, flush=True)
         else:
             self.logger.error(record)
 
     def debug(self, record):
+        """ Log level DEBUG """
         if self.debug_enabled is True:
             print(record, flush=True)
         else:

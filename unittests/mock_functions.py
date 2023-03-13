@@ -1,19 +1,23 @@
-import json
+""" Mock functions """
 import threading
-from mock_data import TestData
 from queue import Queue
+from unittests.mock_data import TestData
 
 
 def mocked_socket_connect_ok(*args):
-    pass
+    """ Mock socket connect ok """
+    return
 
 
 def mocked_socket_connect_fail(*args):
-    raise Exception('Connection error')
+    """ Mock socket connect raise exception """
+    raise Exception('Connection error')  # pylint: disable=broad-exception-raised
 
 
 def mocked_requests_post(*args, **kwargs):
+    """ Mock post request """
     class MockResponse:
+        """ Mock response """
         def __init__(self, status_code, text=None, json_data=None):
             self.status_code = status_code
             self.binary_data = [b'0', b'1']
@@ -21,10 +25,12 @@ def mocked_requests_post(*args, **kwargs):
             self.text = text
 
         def iter_content(self, size):
+            """ Mocker iter """
             for data in self.binary_data:
                 yield data
 
         def json(self):
+            """ Mock json """
             return self.json_data
 
     if kwargs['headers']['test'] == 'test_fetch_image':
@@ -51,48 +57,63 @@ def mocked_requests_post(*args, **kwargs):
 
 
 def mocked_requests_get(*args, **kwargs):
+    """ Mock request """
     class MockResponse:
+        """ Mock response """
         def __init__(self, status_code, json_data=None):
             self.status_code = status_code
             self.binary_data = [b'0', b'1']
             self.json_data = json_data
 
         def iter_content(self, size):
+            """ Mock iter """
             for data in self.binary_data:
                 yield data
 
         def json(self):
+            """ Mock json """
             return self.json_data
 
     if args[0] == 'http://api-server:8000/api/v1/ingest/image':
         return MockResponse(200, json_data={'status': False, 'result': None})
-    elif args[0] == 'valid_url':
+
+    if args[0] == 'valid_url':
         return MockResponse(200)
-    elif args[0] == 'invalid_url':
+
+    if args[0] == 'invalid_url':
         return MockResponse(404)
-    elif args[0] == 'empty_json_response?AppIdt=app-pagetype&reload=true':
+
+    if args[0] == 'empty_json_response?AppIdt=app-pagetype&reload=true':
         return MockResponse(200, json_data={})
-    elif args[0] == 'valid_json_response?AppIdt=app-pagetype&reload=true':
+
+    if args[0] == 'valid_json_response?AppIdt=app-pagetype&reload=true':
         return MockResponse(200, json_data={'item': {'page': {'pagetype': 'mock'}}})
-    elif args[0] == 'raise_exception?AppIdt=app-pagetype&reload=true':
-        raise Exception('Mock exception')
-    elif args[0] == 'https://www.amsterdam.nl/raise_exception?new_json=true&pager_rows=1000':
-        raise Exception('Mock exception')
-    elif args[0] == 'https://www.amsterdam.nl/get?new_json=true&pager_rows=1000':
+
+    if args[0] == 'raise_exception?AppIdt=app-pagetype&reload=true':
+        raise Exception('Mock exception')  # pylint: disable=broad-exception-raised
+
+    if args[0] == 'https://www.amsterdam.nl/raise_exception?new_json=true&pager_rows=1000':
+        raise Exception('Mock exception')  # pylint: disable=broad-exception-raised
+
+    if args[0] == 'https://www.amsterdam.nl/get?new_json=true&pager_rows=1000':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.iprox_projects)
-    elif args[0] == 'https://mock_nieuws/?new_json=true':
+
+    if args[0] == 'https://mock_nieuws/?new_json=true':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.news_data)
-    elif args[0] == 'https://amsterdam.nl/@000000-news/page/?AppIdt=app-pagetype&reload=true':
+
+    if args[0] == 'https://amsterdam.nl/@000000-news/page/?AppIdt=app-pagetype&reload=true':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.news_data)
-    elif args[0] == 'https://mock-timeline?AppIdt=app-pagetype&reload=true':
+
+    if args[0] == 'https://mock-timeline?AppIdt=app-pagetype&reload=true':
         test_data = TestData()
         return MockResponse(200, json_data=test_data.timeline_raw)
 
 
 class MockThread(threading.Thread):
+    """ Mock threads """
     def __init__(self, target=None, args=None, kwargs=None):
         super(MockThread, self).__init__()
         self.target = target
@@ -100,6 +121,7 @@ class MockThread(threading.Thread):
         self.kwargs = kwargs
 
     def start(self):
+        """ Mock start """
         if self.args is not None:
             self.target(*self.args)
         else:
@@ -109,104 +131,131 @@ class MockThread(threading.Thread):
         """ Once a thread object is created, its activity must be started by calling the thread's start() method.
             This invokes the run() method in a separate thread of control.
         """
-        pass
+        return
 
     @staticmethod
-    def join(**kwargs):
+    def join(*args, **kwargs):
+        """ Mock join """
         return
 
 
 def iprox_stadsloketten_valid(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return self.test_data.iprox_stadsloketten
     return Response()
 
 
 def iprox_stadsloketten_invalid(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return {}
     return Response()
 
 
 def iprox_stadsloketten_exception(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return 'Exception Data'
     return Response()
 
 
 def iprox_stadsloketten_ingest_fail(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock reponse """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return self.test_data.iprox_stadsloketten_ingest_fail
     return Response()
 
 
 def iprox_stadsloket_valid(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return self.test_data.iprox_stadsloket
     return Response()
 
 
 def iprox_stadsloket_invalid(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return {}
     return Response()
 
 
 def iprox_stadsloket_exception(*args, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, *args, **kwargs):
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             return 'Exception Data'
     return Response()
 
 
 def iprox_stadsloket_scraper(url, **kwargs):
+    """ Mock request """
     class Response:
+        """ Mock response """
         def __init__(self, url, **kwargs):
             self.url = url
             self.test_data = TestData()
 
         def json(self):
+            """ Mock json """
             if self.url == 'https://www.amsterdam.nl/contact/?AppIdt=app-pagetype&reload=true':
                 return self.test_data.iprox_stadsloketten
-            else:
-                return self.test_data.iprox_stadsloket
+            return self.test_data.iprox_stadsloket
     return Response(url, **kwargs)
 
 
 def iprox_stadsloket_scraper_images(*args, **kwargs):
+    """ Mock scraper """
     class Scraper:
+        """ Mock scraper"""
         def __init__(self, *args, **kwargs):
             self.queue = Queue()
     return Scraper()
 
 
 def iprox_filter(*args, **kwargs):
+    """ Mock filter """
     mock_data = TestData()
     return mock_data.iprox_project_detail

@@ -1,6 +1,6 @@
-import json
-import requests
+""" Fetch stadsloket data from iprox """
 import threading
+import requests
 from FetchData.IproxRecursion import IproxRecursion
 from FetchData.Image import Image
 from GenericFunctions.Hashing import Hashing
@@ -19,8 +19,9 @@ class IproxStadsloketten:
         self.base_path = base_path
         self.header = headers
         self.url = 'https://www.amsterdam.nl/contact/?AppIdt=app-pagetype&reload=true'
-        self.raw_data = dict()
-        self.page = dict()
+        self.raw_data = {}
+        self.page = {}
+        self.page_type = ''
         self.sections = []
         self.stadsloketten = []
 
@@ -48,7 +49,7 @@ class IproxStadsloketten:
         :return: void
         """
         try:
-            result = requests.get(self.url)
+            result = requests.get(self.url, timeout=10)
             self.raw_data = result.json()
             item = self.raw_data.get('item', None)
             if item is None:
@@ -64,11 +65,12 @@ class IproxStadsloketten:
             self.logger.error('failed fetching data from {url}: {error}'.format(url=self.url, error=error))
 
     def parse_data(self):
-        # Based on page-type the data is parsed differently (e.g. news, normal page, ...)
+        """ Based on page-type the data is parsed differently (e.g. news, normal page, ...) """
         if self.page.get('pagetype', '') == 'subhome':
             self.parse_page(self.page.get('cluster', []))
 
     def parse_page(self, dicts):
+        """ Parse page """
         iprox = IproxRecursion()
         filtered_dicts = iprox.filter(dicts, [], targets=self.page_targets)
 
@@ -102,21 +104,30 @@ class IproxStadsloketten:
         # self.save()
 
     def save(self):
+        """ Send data to iprox ingestion routes (backend) """
+
         # Save city contact
-        url = 'http://{host}:{port}{base_path}/citycontact'.format(host=self.host, port=self.port, base_path=self.base_path)
-        result = requests.post(url, headers=self.header, json=self.sections)
+        url = f'http://{self.host}:{self.port}{self.base_path}/citycontact'
+        result = requests.post(url, headers=self.header, json=self.sections, timeout=10)
         if result.status_code != 200:
             self.logger.error(result.text)
 
         # Save city offices
-        url = 'http://{host}:{port}{base_path}/cityoffices'.format(host=self.host, port=self.port, base_path=self.base_path)
-        result = requests.post(url, headers=self.header, json=self.stadsloketten)
+        url = f'http://{self.host}:{self.port}{self.base_path}/cityoffices'
+        result = requests.post(url, headers=self.header, json=self.stadsloketten, timeout=10)
         if result.status_code != 200:
             self.logger.error(result.text)
 
 
 class IproxStadsloket:
-    def __init__(self, url, identifier, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
+    """ Class for fetching iprox stadsloket data """
+    def __init__(self,  # pylint: disable=too-many-arguments
+                 url,
+                 identifier,
+                 backend_host='api-server',
+                 backend_port=8000,
+                 base_path='/api/v1/ingest',
+                 headers=dict):
         self.logger = Logger()
         self.host = backend_host
         self.port = backend_port
@@ -124,6 +135,7 @@ class IproxStadsloket:
         self.headers = headers
         self.raw_data = {}
         self.page = {}
+        self.page_type = ''
         self.url = '{url}?AppIdt=app-pagetype&reload=true'.format(url=url)
         self.identifier = identifier
         self.details = {'identifier': self.identifier, 'contact': {}, 'images': {}}
@@ -140,10 +152,9 @@ class IproxStadsloket:
         ]
 
     def get_data(self):
-        """ request data from IPROX-end-point
-        """
+        """ request data from IPROX-end-point """
         try:
-            result = requests.get(self.url)
+            result = requests.get(self.url, timeout=10)
             self.raw_data = result.json()
             item = self.raw_data.get('item', None)
             if item is None:
@@ -159,16 +170,17 @@ class IproxStadsloket:
             self.logger.error('failed fetching data from {url}: {error}'.format(url=self.url, error=error))
 
     def parse_data(self):
-        # Based on page-type the data is parsed differently (e.g. news, normal page, ...)
+        """ Based on page-type the data is parsed differently (e.g. news, normal page, ...) """
         if self.page.get('pagetype', '') == 'subhome':
             self.parse_page(self.page.get('cluster', []))
 
     def parse_page(self, dicts):
+        """ Parse page """
         iprox = IproxRecursion()
         filtered_dicts = iprox.filter(dicts, [], targets=self.page_targets)
 
         # Walk through each item in filtered_dict for setting data in self.details
-        for i in range(0, len(filtered_dicts), 1):
+        for i in range(0, len(filtered_dicts), 1):  # pylint: disable=too-many-nested-blocks
             _dict = filtered_dicts[i]
 
             # Info (generic) text
@@ -238,30 +250,38 @@ class IproxStadsloket:
         # self.save()
 
     def save(self):
-        url = 'http://{host}:{port}{base_path}/cityoffice'.format(host=self.host, port=self.port, base_path=self.base_path)
-        result = requests.post(url, headers=self.headers, json=self.details)
+        """ Save data to iprox ingestion routes on (backend) server """
+        url = f'http://{self.host}:{self.port}{self.base_path}/cityoffice'
+        result = requests.post(url, headers=self.headers, json=self.details, timeout=10)
         if result.status_code != 200:
             self.logger.error(result.text)
 
 
 class Scraper:
+    """ Main scraper class """
     def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
         self.backend_host = backend_host
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host, backend_port=self.backend_port, base_path=base_path, headers=self.headers)
+        self.image = Image(backend_host=backend_host,
+                           backend_port=self.backend_port,
+                           base_path=base_path,
+                           headers=self.headers)
 
     def get_images(self, details):
-        # Add image objects to the download queue
+        """ Add image objects to the download queue """
         for size in details['images']['sources']:
             image_object = details['images']['sources'][size]
             image_object['size'] = size
             self.image.queue.put(image_object)
 
     def run(self):
-        # Get main stadsloket info (contact info and sub_pages urls)
-        isl = IproxStadsloketten(backend_host=self.backend_host, backend_port=self.backend_port, base_path=self.base_path, headers=self.headers)
+        """ Get main stadsloket info (contact info and sub_pages urls) """
+        isl = IproxStadsloketten(backend_host=self.backend_host,
+                                 backend_port=self.backend_port,
+                                 base_path=self.base_path,
+                                 headers=self.headers)
         isl.get_data()
         isl.parse_data()
 
@@ -269,16 +289,21 @@ class Scraper:
         for item in isl.stadsloketten:
             url = item['url']
             identifier = item['identifier']
-            isl_sub = IproxStadsloket(url, identifier, backend_host=self.backend_host, backend_port=self.backend_port, base_path=self.base_path, headers=self.headers)
+            isl_sub = IproxStadsloket(url,
+                                      identifier,
+                                      backend_host=self.backend_host,
+                                      backend_port=self.backend_port,
+                                      base_path=self.base_path,
+                                      headers=self.headers)
             isl_sub.get_data()
             isl_sub.parse_data()
             self.get_images(isl_sub.details)
 
         # Get images and IproxNews multi-threaded to speed up the scraping-process
-        threads = list()
+        threads = []
 
         # Fetch images (queue is filled during project scraping)
-        thread_image = threading.Thread(target=self.image.run, kwargs=({'module': 'Iprox Stadsloketten'}))
+        thread_image = threading.Thread(target=self.image.run, kwargs={'module': 'Iprox Stadsloketten'})
         thread_image.start()
         threads.append(thread_image)
 
