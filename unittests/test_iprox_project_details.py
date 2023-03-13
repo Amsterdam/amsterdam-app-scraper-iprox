@@ -15,7 +15,7 @@ class Unittests(unittest.TestCase):
     @patch('requests.get', mocked_requests_get)
     def test_get_data_valid_item_is_none():
         """ Test get empty page """
-        iprox_project = IproxProject('empty_json_response', 'identifier')
+        iprox_project = IproxProject('empty_json_response', 'identifier', 'title')
         iprox_project.get_data()
 
         assert iprox_project.identifier == 'identifier'
@@ -27,7 +27,7 @@ class Unittests(unittest.TestCase):
     @patch('requests.get', mocked_requests_get)
     def test_get_data_valid_item_is_not_none():
         """ Test get valid page """
-        iprox_project = IproxProject('valid_json_response', 'identifier')
+        iprox_project = IproxProject('valid_json_response', 'identifier', 'title')
         iprox_project.get_data()
 
         assert iprox_project.identifier == 'identifier'
@@ -40,7 +40,7 @@ class Unittests(unittest.TestCase):
     @patch('requests.get', mocked_requests_get)
     def test_get_data_raise_exception(mock):
         """ Test get data with raised exception """
-        iprox_project = IproxProject('raise_exception', 'identifier')
+        iprox_project = IproxProject('raise_exception', 'identifier', 'title')
         iprox_project.get_data()
 
         assert iprox_project.identifier == 'identifier'
@@ -55,7 +55,7 @@ class Unittests(unittest.TestCase):
     def test_parse_data(_iprox_filter):
         """ Test parse data """
         test_data = TestData()
-        iprox_project = IproxProject('None', 'identifier')
+        iprox_project = IproxProject('None', 'identifier', '')
         iprox_project.page = {'pagetype': 'subhome'}
         iprox_project.raw_data = {'item': {'Url': 'https://mock/mock/mock/', 'relUrl': 'mock/mock'}}
         iprox_project.parse_data()
@@ -66,7 +66,7 @@ class Unittests(unittest.TestCase):
     @patch('requests.get', mocked_requests_get)
     def test_get_timeline():
         """ Test get timeline """
-        iprox_project = IproxProject('None', 'identifier')
+        iprox_project = IproxProject('None', 'identifier', 'title')
         iprox_project.get_timeline('https://mock-timeline')
 
         expected_result = {
