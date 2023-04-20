@@ -4,7 +4,7 @@ import base64
 import threading
 import time
 import requests
-from requests.exceptions import JSONDecodeError  # pylint disable=no-name-in-module
+from requests import JSONDecodeError
 from GenericFunctions.Logger import Logger
 
 
