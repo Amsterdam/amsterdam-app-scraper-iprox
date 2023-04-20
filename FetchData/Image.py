@@ -4,7 +4,7 @@ import base64
 import threading
 import time
 import requests
-from requests import JSONDecodeError
+from requests.exceptions import JSONDecodeError
 from GenericFunctions.Logger import Logger
 
 
