@@ -3,7 +3,7 @@ import base64
 from queue import Queue
 import json
 import requests
-from requests.exceptions import JSONDecodeError
+from requests.exceptions import JSONDecodeError  # pylint disable=no-name-in-module
 from GenericFunctions.Hashing import Hashing
 from GenericFunctions.Logger import Logger
 from GenericFunctions.TextSanitizers import TextSanitizers
