@@ -34,6 +34,7 @@ class IproxNews:
         self.queue = Queue()
         self.query_param = '?AppIdt=app-pagetype&reload=true'
         self.page_targets = ['Meta', 'Gegevens', 'Inhoud', 'Verwijzing', 'Download']
+        self.scraper_report = {}
 
     @staticmethod
     def skeleton():
@@ -238,12 +239,21 @@ class IproxNews:
         """ Post data to backend server """
         url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/news'
         response = requests.post(url, headers=self.headers, json=news_item_data, timeout=3600)
+        scraper_result = {
+            'url': f'https://amsterdam.nl/@{news_item_data["identifier"]}/page/',
+            'title': news_item_data['title'],
+            'publication_date': news_item_data['publication_date'],
+        }
         if response.status_code != 200:
             self.logger.error(response.text)
             print(message + f" Failed ingesting {response.text}")
+            scraper_result['ingestion'] = 'failed'
         else:
             response_json = json.loads(response.text)
             print(message + f' {response_json["result"]}', flush=True)
+            scraper_result['ingestion'] = 'successful'
+
+        self.scraper_report[news_item_data['project_identifier']]['news'].append(scraper_result)
 
     def get_images(self, news_item_data):
         """ Add image objects to the download queue """
@@ -256,15 +266,15 @@ class IproxNews:
         else:
             print('No images for news item')
 
-    def run(self):
+    def run(self, scraper_report=dict):
         """ Keep getting jobs from a queue until the queue is empty. Scrape each item from the queue """
+        self.scraper_report = scraper_report
         while not self.queue.empty():
             # Get queued news_items and scrape data
             job = self.queue.get()
             news_item_data = self.scraper(job['news_item'])
             message = f'Parsing News: {job["news_item"]["project_title"]} ' \
                       f'{news_item_data.get("publication_date", "no publication date")}'
-
 
             if news_item_data:  # Check if news_item_data is not an empty dict.
                 news_item_data['project_type'] = job['project_type']

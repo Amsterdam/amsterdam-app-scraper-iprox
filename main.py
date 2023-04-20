@@ -38,18 +38,26 @@ def main():
 
     iprox_ingestion = IproxIngestion(backend_host=backend_host, backend_port=backend_port, base_path=base_path,
                                      headers=headers)
-    for project_type in ['projects', 'stadsloket']:
-        iprox_ingestion.start(project_type)
+    for project_type in ['test_pages', 'stadsloket', 'projects']:
+        scraper_report = iprox_ingestion.start(project_type)
 
         # Call Garbage collector
         if garbage_collect is True:
             url = 'http://{host}:{port}/api/v1/ingest/garbagecollector'.format(host=backend_host, port=backend_port)
-            result = requests.get(url,
-                                  headers=headers,
-                                  params={'project_type': project_type, 'date': scraper_started},
-                                  timeout=300)
-            if result.status_code != 200:
-                logger.error(result.text)
+            response = requests.get(url,
+                                    headers=headers,
+                                    params={'project_type': project_type, 'date': scraper_started},
+                                    timeout=300)
+
+            if response.status_code != 200:
+                logger.error(response.text)
+            else:
+                data = response.json()
+                scraper_report['garbage_collector'] = data['result']
+
+        # if project_type in ['projects']:
+        #     # Send scraper report to backend for processing
+        #     print(json.dumps(scraper_report, indent=2))
 
 
 if __name__ == '__main__':

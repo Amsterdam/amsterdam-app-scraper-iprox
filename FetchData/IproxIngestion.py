@@ -1,4 +1,5 @@
 """ Iprox ingestion """
+import datetime
 import json
 import threading
 import requests
@@ -47,10 +48,36 @@ class IproxIngestion:
                               headers=headers)
         self.paths = {
             'projects': '/projecten/alle-projecten-amsterdam-app',
+            # 'test_pages': '/projecten/test-projecten-amsterdam-app/'
             # 'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
             # 'kade': '/projecten/kademuren/maatregelen-vernieuwing/',
             # 'bouw-en-verkeer': '/projecten/overzicht/'
         }
+        self.scraper_report = {}
+
+    def update_scraper_report(self, data=None, existing_project=False, success=False):
+        """ Create report for scraped page """
+        project_report = {
+            'url': f'https://amsterdam.nl/@{data["identifier"]}/page/',
+            'title': data['title'],
+            'news': [], 'images': None, 'contacts': None, 'coordinates': None,
+            'what': None, 'when': None, 'where': None, 'work': None, 'more-info': None, 'timeline': None,
+            'history': 'project is: unreachable/offline'
+        }
+        if success:
+            project_report['news'] = []
+            project_report['images'] = len(data['images'])
+            project_report['contacts'] = len(data['contacts'])
+            project_report['coordinates'] = bool(isinstance(data['coordinates']['lon'], float))
+            project_report['what'] = bool(len(data['body']['what']) > 0)
+            project_report['when'] = bool(len(data['body']['when']) > 0)
+            project_report['where'] = bool(len(data['body']['where']) > 0)
+            project_report['work'] = bool(len(data['body']['work']) > 0)
+            project_report['more-info'] = bool(len(data['body']['more-info']) > 0)
+            project_report['timeline'] = bool(len(data['body']['timeline']) > 0)
+            project_report['history'] = 'project is: updated' if existing_project else 'project is: new'
+
+        self.scraper_report[data["identifier"]] = project_report
 
     def get_images(self, fpd_details):
         """ Add image objects to the download queue """
@@ -109,8 +136,8 @@ class IproxIngestion:
         updated = new = failed = 0
         for item in fpa.parsed_data:
             # DEBUG: Set title for page you'd like to debug...
-            # if item['title'] != 'Sluisbuurt op Zeeburgereiland':
-            #    continue
+            # if item['title'] != 'Elzenhagen Zuid':
+            #     continue
             print('Parsing ', end='')
             print(f'https://amsterdam.nl/@{item["identifier"]}/page/?AppIdt=app-pagetype&reload=true ', end='')
             print(f'title: {item["title"]}', flush=True)
@@ -130,9 +157,9 @@ class IproxIngestion:
                     item['images'] = result['images']
                     item['district_id'] = result['district_id']
                     item['district_name'] = result['district_name']
-                    result = requests.post(url, headers=self.headers, json=item, timeout=10)
-                    if result.status_code != 200:
-                        self.logger.error(result.text)
+                    response = requests.post(url, headers=self.headers, json=item, timeout=10)
+                    if response.status_code != 200:
+                        self.logger.error(response.text)
                         return {}
 
                     # Keep track of amount of updates/new insertions
@@ -140,7 +167,11 @@ class IproxIngestion:
                         updated += 1
                     else:
                         new += 1
+
+                    # update scraper report
+                    self.update_scraper_report(data=result, existing_project=existing_project, success=True)
                 else:
+                    self.update_scraper_report(data=item, existing_project=existing_project, success=False)
                     payload = {'identifier': item.get('identifier')}
                     result = requests.delete(url, headers=self.headers, json=payload, timeout=10)
                     if result.status_code != 200:
@@ -157,7 +188,7 @@ class IproxIngestion:
 
         # Fetch news
         print('Fetching news items', flush=True)
-        thread_news = threading.Thread(target=self.news.run)
+        thread_news = threading.Thread(target=self.news.run, kwargs={'scraper_report': self.scraper_report})
         thread_news.start()
         threads.append(thread_news)
 
@@ -171,7 +202,15 @@ class IproxIngestion:
         for thread in threads:
             thread.join()
 
-        return {'new': new, 'updated': updated, 'failed': failed, 'project_type': project_type}
+        # Return scraper report
+        report = {
+            'new': new,
+            'updated': updated,
+            'failed': failed,
+            'details': self.news.scraper_report,
+            'date': str(datetime.datetime.now())
+        }
+        return report
 
     def get_stads_loketten(self):
         """ Scrape StadsLoketten """
@@ -183,9 +222,16 @@ class IproxIngestion:
 
     def start(self, project_type):
         """ First scrape projects, then stads-loketten """
-        result = {}
+        # report_test_pages = {}
+        report_projects = {}
+        report_stads_loketten = {}
+        # if project_type in ['test_pages']:
+        #     report_test_pages = self.get_set_projects(project_type)
+
         if project_type in ['projects']:
-            result = self.get_set_projects(project_type)
-        elif project_type in ['stadsloket']:
-            result = self.get_stads_loketten()
-        return print(result, flush=True)
+            report_projects = self.get_set_projects(project_type)
+
+        if project_type in ['stadsloket']:
+            report_stads_loketten = self.get_stads_loketten()
+
+        return {'projects': report_projects, 'stadsloket': report_stads_loketten}
