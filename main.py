@@ -11,50 +11,72 @@ from GenericFunctions.AESCipher import AESCipher
 from GenericFunctions.IsReachable import IsReachable
 from GenericFunctions.Logger import Logger
 
+# Get environment parameters: BACKEND host and port
+aes_secret = os.getenv('AES_SECRET')
+backend_host = os.getenv('TARGET', 'construction-work')
+backend_port = int(os.getenv('TARGET_PORT', '8000'))
+base_path = os.getenv('BASE_PATH', '/api/v1/ingest')
+garbage_collect = bool(os.getenv('GARBAGE_COLLECT', 'true') == 'true')
+logger = Logger()
+
+# Set header
+token = AESCipher(str(uuid4()), aes_secret).encrypt()
+headers = {'Accept': 'application/json', 'IngestAuthorization': token}
+
+
+def garbage_collector(project_type, scraper_started):
+    """ Start garbage collector on ingestion site
+
+        :param project_type: string
+        :param scraper_started: datatime
+        :return: scraper_result
+    """
+
+    # Setup UserAuthorization Header
+    url = 'http://{host}:{port}/api/v1/ingest/garbagecollector'.format(host=backend_host, port=backend_port)
+    response = requests.get(
+        url,
+        headers=headers,
+        params={'project_type': project_type, 'date': scraper_started},
+        timeout=300
+    )
+
+    if response.status_code != 200:
+        logger.error(response.text)
+        return {}
+
+    # Return scraper result
+    data = response.json()
+    return data['result']
+
 
 def main():
     """ Main entry point for the scraper
     """
-    # Setup logger
-    logger = Logger()
-
-    # Set data/time stamp when scraper started, used for garbage collection
-    scraper_started = str(datetime.datetime.now())
-
-    # Get environment parameters: BACKEND host and port
-    backend_host = os.getenv('TARGET', 'api-server')
-    backend_port = int(os.getenv('TARGET_PORT', '8000'))
-    garbage_collect = bool(os.getenv('GARBAGE_COLLECT', 'true') == 'true')
-    base_path = os.getenv('BASE_PATH', '/api/v1/ingest')
-
     # Check if API-server is alive
     if not IsReachable(backend_host=backend_host, backend_port=backend_port).check():
         print('API-server unreachable: Iprox scraper aborted', flush=True)
         sys.exit(1)
 
-    # Setup UserAuthorization Header
-    token = AESCipher(str(uuid4()), os.getenv('AES_SECRET')).encrypt()
-    headers = {'Accept': 'application/json', 'IngestAuthorization': token}
+    # Set data/time stamp when scraper started, used for garbage collection
+    scraper_started = str(datetime.datetime.now())
 
-    iprox_ingestion = IproxIngestion(backend_host=backend_host, backend_port=backend_port, base_path=base_path,
-                                     headers=headers)
+    # Initialize scraper
+    iprox_ingestion = IproxIngestion(
+        backend_host=backend_host,
+        backend_port=backend_port,
+        base_path=base_path,
+        headers=headers
+    )
+
     for project_type in ['test_pages', 'stadsloket', 'projects']:
         scraper_report = iprox_ingestion.start(project_type)
 
         # Call Garbage collector
         if garbage_collect is True:
-            url = 'http://{host}:{port}/api/v1/ingest/garbagecollector'.format(host=backend_host, port=backend_port)
-            response = requests.get(url,
-                                    headers=headers,
-                                    params={'project_type': project_type, 'date': scraper_started},
-                                    timeout=300)
+            scraper_report['garbage_collector'] = garbage_collector(project_type, scraper_started)
 
-            if response.status_code != 200:
-                logger.error(response.text)
-            else:
-                data = response.json()
-                scraper_report['garbage_collector'] = data['result']
-
+        # TO IMPLEMENT...
         # if project_type in ['projects']:
         #     # Send scraper report to backend for processing
         #     print(json.dumps(scraper_report, indent=2))
