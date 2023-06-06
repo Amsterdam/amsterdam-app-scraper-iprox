@@ -30,6 +30,9 @@ class IproxIngestion:
 
             https://amsterdam.nl/@{itmidt}/page/?new_json=true&pager_rows=1000      (list of pages)
             https://amsterdam.nl/@{itmidt}/page/?AppIdt=app-pagetype&reload=true    (single page)
+
+
+            https://amsterdam.nl/@337520/page/?AppIdt=app-pagetype&reload=true
     """
 
     def __init__(self, backend_host='api-server', backend_port=8000, base_path='/api/v1/ingest', headers=dict):
