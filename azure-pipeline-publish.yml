@@ -53,4 +53,4 @@ stages:
             parameters:
               repository: "amsterdam-app-scraper-iprox"
               sshKeySecureFile: "Scraper-Iprox-github-ssh"
-              sshPublicKey: $(sshPublicKeyConstructionWork)
+              sshPublicKey: $(sshPublicKeyScaperIprox)
