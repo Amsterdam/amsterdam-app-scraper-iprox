@@ -2,43 +2,55 @@ trigger:
   batch: true
   branches:
     include:
-    - main
+      - main
 
 resources:
-- repo: self
+  - repo: self
 
 variables:
-  - group: acr-ontwikkel 
+  - group: acr-ontwikkel
   # Container registry service connection established during pipeline creation
   - name: dockerRegistryServiceConnection
     value: $(docker-registry-service-connection)
   - name: imageRepository
-    value: 'amsterdam-app-scraper-iprox'
+    value: "amsterdam-app-scraper-iprox"
   - name: containerRegistry
     value: $(container-registry)
   - name: dockerfilePath
-    value: '$(Build.SourcesDirectory)/Dockerfile'
+    value: "$(Build.SourcesDirectory)/Dockerfile"
   - name: tag
-    value: '$(Build.BuildNumber)'
+    value: "$(Build.BuildNumber)"
   # Agent VM image name
   - name: vmImageName
-    value: 'ubuntu-latest'
+    value: "ubuntu-latest"
 
 stages:
-- stage: Build
-  displayName: Build and push stage
-  jobs:  
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: $(vmImageName)
-    steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
-      inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
+  - stage: Build
+    displayName: Build and push stage
+    jobs:
+      - job: Build
+        displayName: Build
+        pool:
+          vmImage: $(vmImageName)
+        steps:
+          - task: Docker@2
+            displayName: Build and push an image to container registry
+            inputs:
+              command: buildAndPush
+              repository: $(imageRepository)
+              dockerfile: $(dockerfilePath)
+              containerRegistry: $(dockerRegistryServiceConnection)
+              tags: |
+                $(tag)
+      - job: "Push_to_Github"
+        timeoutInMinutes: 30
+        pool:
+          vmImage: macOS-12
+        variables:
+          - group: github-authorization
+        steps:
+          - template: ./pipelines/templates/push-repo-to-github.yml
+            parameters:
+              repository: "amsterdam-app-scraper-iprox"
+              sshKeySecureFile: "Scraper-Iprox-github-ssh"
+              sshPublicKey: $(sshPublicKeyConstructionWork)
