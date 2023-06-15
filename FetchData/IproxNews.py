@@ -7,7 +7,6 @@ from requests.exceptions import JSONDecodeError
 from GenericFunctions.Hashing import Hashing
 from GenericFunctions.Logger import Logger
 from GenericFunctions.TextSanitizers import TextSanitizers
-from FetchData.Image import Image
 from FetchData.IproxRecursion import IproxRecursion
 
 
@@ -25,10 +24,6 @@ class IproxNews:
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host,
-                           backend_port=backend_port,
-                           base_path=self.base_path,
-                           headers=headers)
         self.sanitizer = TextSanitizers()
         self.hash = Hashing()
         self.queue = Queue()
@@ -255,17 +250,6 @@ class IproxNews:
 
         self.scraper_report[news_item_data['project_identifier']]['news'].append(scraper_result)
 
-    def get_images(self, news_item_data):
-        """ Add image objects to the download queue """
-        if 'images' in news_item_data:
-            for images in news_item_data['images']:
-                for size in images['sources']:
-                    image_object = images['sources'][size]
-                    image_object['size'] = size
-                    self.image.queue.put(image_object)
-        else:
-            print('No images for news item')
-
     def run(self, scraper_report=dict):
         """ Keep getting jobs from a queue until the queue is empty. Scrape each item from the queue """
         self.scraper_report = scraper_report
@@ -279,7 +263,3 @@ class IproxNews:
             if news_item_data:  # Check if news_item_data is not an empty dict.
                 news_item_data['project_type'] = job['project_type']
                 self.save_news_item(news_item_data, message)
-                self.get_images(news_item_data)
-
-        # Download images for each scraped news item
-        self.image.run(module='Iprox News items')

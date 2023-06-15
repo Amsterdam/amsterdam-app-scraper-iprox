@@ -1,10 +1,8 @@
 """ Iprox ingestion """
 import datetime
 import json
-import threading
 import requests
 from GenericFunctions.Logger import Logger
-from FetchData.Image import Image
 from FetchData.IproxProject import IproxProject
 from FetchData.IproxProjects import IproxProjects
 from FetchData.IproxNews import IproxNews
@@ -41,21 +39,11 @@ class IproxIngestion:
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host,
-                           backend_port=backend_port,
-                           base_path=base_path,
-                           headers=headers)
         self.news = IproxNews(backend_host=backend_host,
                               backend_port=backend_port,
                               base_path=base_path,
                               headers=headers)
-        self.paths = {
-            'projects': '/projecten/alle-projecten-amsterdam-app',
-            # 'test_pages': '/projecten/test-projecten-amsterdam-app/'
-            # 'brug': '/projecten/bruggen/maatregelen-vernieuwen-bruggen/',
-            # 'kade': '/projecten/kademuren/maatregelen-vernieuwing/',
-            # 'bouw-en-verkeer': '/projecten/overzicht/'
-        }
+        self.paths = {'projects': '/projecten/alle-projecten-amsterdam-app'}
         self.scraper_report = {}
 
     def update_scraper_report(self, data=None, existing_project=False, success=False):
@@ -82,14 +70,6 @@ class IproxIngestion:
 
         self.scraper_report[data["identifier"]] = project_report
 
-    def get_images(self, fpd_details):
-        """ Add image objects to the download queue """
-        for images in fpd_details['images']:
-            for size in images['sources']:
-                image_object = images['sources'][size]
-                image_object['size'] = size
-                self.image.queue.put(image_object)
-
     def queue_news(self, fpd_details):
         """ add news_items to the IproxNews.queue for scraping """
         for news_item in fpd_details['news']:
@@ -104,18 +84,6 @@ class IproxIngestion:
         if fpd.page_type == 'subhome':
             fpd.parse_data()
             fpd.details['project_type'] = project_type
-
-            # Send data to API-server
-            url = 'http://{host}:{port}{base_path}/project'.format(host=self.backend_host,
-                                                                   port=self.backend_port,
-                                                                   base_path=self.base_path)
-            result = requests.post(url, headers=self.headers, json=fpd.details, timeout=10)
-            if result.status_code != 200:
-                self.logger.error(result.text)
-                return None
-
-            # Add images from this project to the download queue
-            self.get_images(fpd.details)
 
             # Add news items from this project to the IproxNews.queue() for fetching
             self.queue_news(fpd.details)
@@ -132,20 +100,18 @@ class IproxIngestion:
         fpa.get_data()
         fpa.parse_data()
 
-        url = 'http://{host}:{port}{base_path}/projects'.format(host=self.backend_host,
-                                                                port=self.backend_port,
-                                                                base_path=self.base_path)
+        projects_url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/projects'
 
-        updated = new = failed = 0
+        updated = new = failed = deleted = 0
         for item in fpa.parsed_data:
             # DEBUG: Set title for page you'd like to debug...
-            # if item['title'] != 'Elzenhagen Zuid':
+            # if item['identifier'] != '1145386':
             #     continue
             print('Parsing ', end='')
             print(f'https://amsterdam.nl/@{item["identifier"]}/page/?AppIdt=app-pagetype&reload=true ', end='')
             print(f'title: {item["title"]}', flush=True)
             try:
-                result = requests.get(url,
+                result = requests.get(projects_url,
                                       headers=self.headers,
                                       params={'identifier': item.get('identifier')},
                                       timeout=10)
@@ -155,15 +121,23 @@ class IproxIngestion:
                 if data.get('result') is not None:
                     existing_project = True
 
-                result = self.get_set_project_details(item, project_type)
+                fpd_details = self.get_set_project_details(item, project_type)
                 if result is not None:
-                    item['images'] = result['images']
-                    item['district_id'] = result['district_id']
-                    item['district_name'] = result['district_name']
-                    response = requests.post(url, headers=self.headers, json=item, timeout=10)
+                    # Ingest projects data into construction-work backend
+                    item['images'] = fpd_details['images']
+                    item['district_id'] = fpd_details['district_id']
+                    item['district_name'] = fpd_details['district_name']
+                    response = requests.post(projects_url, headers=self.headers, json=item, timeout=10)
                     if response.status_code != 200:
                         self.logger.error(response.text)
-                        return {}
+                        continue
+
+                    # Ingest project-details data into construction-work backend
+                    project_detail_url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/project'
+                    result = requests.post(project_detail_url, headers=self.headers, json=fpd_details, timeout=10)
+                    if result.status_code != 200:
+                        self.logger.error(result.text)
+                        continue
 
                     # Keep track of amount of updates/new insertions
                     if existing_project is True:
@@ -172,45 +146,32 @@ class IproxIngestion:
                         new += 1
 
                     # update scraper report
-                    self.update_scraper_report(data=result, existing_project=existing_project, success=True)
+                    self.update_scraper_report(data=fpd_details, existing_project=existing_project, success=True)
                 else:
                     self.update_scraper_report(data=item, existing_project=existing_project, success=False)
                     payload = {'identifier': item.get('identifier')}
-                    result = requests.delete(url, headers=self.headers, json=payload, timeout=10)
+                    result = requests.delete(projects_url, headers=self.headers, json=payload, timeout=10)
                     if result.status_code != 200:
                         self.logger.error(result.text)
                     else:
                         self.logger.info('Project {identifier} deleted'.format(identifier=item.get('identifier')))
+                        deleted += 1
             except Exception as error:
                 self.logger.error('failed ingesting data {project}: {error}'.format(project=item.get('title'),
                                                                                     error=error))
                 failed += 1
 
-        # Get images and IproxNews multi-threaded to speed up the scraping-process
-        threads = []
-
         # Fetch news
         print('Fetching news items', flush=True)
-        thread_news = threading.Thread(target=self.news.run, kwargs={'scraper_report': self.scraper_report})
-        thread_news.start()
-        threads.append(thread_news)
-
-        # Fetch images (queue is filled during project scraping)
-        print('Fetching images', flush=True)
-        thread_image = threading.Thread(target=self.image.run, kwargs={'module': 'Iprox Project Details'})
-        thread_image.start()
-        threads.append(thread_image)
-
-        # Join threads (blocking!)
-        for thread in threads:
-            thread.join()
+        self.news.run(scraper_report=self.scraper_report)
 
         # Return scraper report
         report = {
             'new': new,
             'updated': updated,
             'failed': failed,
-            'details': self.news.scraper_report,
+            'deleted': deleted,
+            'total': new + updated - deleted,
             'date': str(datetime.datetime.now())
         }
         return report

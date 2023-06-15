@@ -25,8 +25,8 @@ Clone this project and in the root folder of this project run the command below 
     
 ### Create container on m1 arch for amd64
 
-    docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.app-amsterdam.nl/backend-iprox:tst-latest
-    docker buildx build --platform=linux/amd64 -f build-docker-image/Dockerfile . -t registry-ams.app-amsterdam.nl/backend-iprox:prd-latest
+    docker buildx build --platform=linux/amd64 -f Dockerfile . -t registry-ams.app-amsterdam.nl/backend-iprox:tst-latest
+    docker buildx build --platform=linux/amd64 -f Dockerfile . -t registry-ams.app-amsterdam.nl/backend-iprox:prd-latest
 
 ### Run pylinter
 

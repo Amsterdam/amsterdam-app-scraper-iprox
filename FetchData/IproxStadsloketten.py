@@ -1,8 +1,6 @@
 """ Fetch stadsloket data from iprox """
-import threading
 import requests
 from FetchData.IproxRecursion import IproxRecursion
-from FetchData.Image import Image
 from GenericFunctions.Hashing import Hashing
 from GenericFunctions.Logger import Logger
 from GenericFunctions.TextSanitizers import TextSanitizers
@@ -264,17 +262,6 @@ class Scraper:
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.image = Image(backend_host=backend_host,
-                           backend_port=self.backend_port,
-                           base_path=base_path,
-                           headers=self.headers)
-
-    def get_images(self, details):
-        """ Add image objects to the download queue """
-        for size in details['images']['sources']:
-            image_object = details['images']['sources'][size]
-            image_object['size'] = size
-            self.image.queue.put(image_object)
 
     def run(self):
         """ Get main stadsloket info (contact info and sub_pages urls) """
@@ -297,16 +284,3 @@ class Scraper:
                                       headers=self.headers)
             isl_sub.get_data()
             isl_sub.parse_data()
-            self.get_images(isl_sub.details)
-
-        # Get images and IproxNews multi-threaded to speed up the scraping-process
-        threads = []
-
-        # Fetch images (queue is filled during project scraping)
-        thread_image = threading.Thread(target=self.image.run, kwargs={'module': 'Iprox Stadsloketten'})
-        thread_image.start()
-        threads.append(thread_image)
-
-        # Join threads (blocking!)
-        for thread in threads:
-            thread.join()
