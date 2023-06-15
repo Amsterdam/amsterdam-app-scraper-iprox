@@ -55,10 +55,7 @@ def main():
                 data = response.json()
                 scraper_report['garbage_collector'] = data['result']
 
-        # if project_type in ['projects']:
-        #     # Send scraper report to backend for processing
-        #     print(json.dumps(scraper_report, indent=2))
-
+        print(scraper_report)
 
 if __name__ == '__main__':
     # Call the main entry point for the Iprox scraper
