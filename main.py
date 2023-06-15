@@ -22,8 +22,8 @@ def main():
     scraper_started = str(datetime.datetime.now())
 
     # Get environment parameters: BACKEND host and port
-    backend_host = os.getenv('TARGET', 'api-server')
-    backend_port = int(os.getenv('TARGET_PORT', '8000'))
+    backend_host = os.getenv('CONSTRUCTION_WORK', 'construction-work')
+    backend_port = int(os.getenv('CONSTRUCTION_WORK_PORT', '8000'))
     garbage_collect = bool(os.getenv('GARBAGE_COLLECT', 'true') == 'true')
     base_path = os.getenv('BASE_PATH', '/api/v1/ingest')
 
