@@ -57,6 +57,7 @@ def main():
 
         print(scraper_report)
 
+
 if __name__ == '__main__':
     # Call the main entry point for the Iprox scraper
     main()

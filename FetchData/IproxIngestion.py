@@ -5,7 +5,7 @@ import requests
 from GenericFunctions.Logger import Logger
 from FetchData.IproxProject import IproxProject
 from FetchData.IproxProjects import IproxProjects
-from FetchData.IproxNews import IproxNews
+from FetchData.IproxArticle import IproxArticle
 from FetchData.IproxStadsloketten import Scraper as IproxStadslokettenScraper
 
 
@@ -36,10 +36,10 @@ class IproxIngestion:
         self.backend_port = backend_port
         self.base_path = base_path
         self.headers = headers
-        self.news = IproxNews(backend_host=backend_host,
-                              backend_port=backend_port,
-                              base_path=base_path,
-                              headers=headers)
+        self.article = IproxArticle(backend_host=backend_host,
+                                    backend_port=backend_port,
+                                    base_path=base_path,
+                                    headers=headers)
         self.paths = {'projects': '/projecten/alle-projecten-amsterdam-app'}
         self.scraper_report = {}
 
@@ -68,9 +68,9 @@ class IproxIngestion:
         self.scraper_report[data["identifier"]] = project_report
 
     def queue_news(self, fpd_details):
-        """ add news_items to the IproxNews.queue for scraping """
-        for news_item in fpd_details['news']:
-            self.news.queue.put({'news_item': news_item, 'project_type': fpd_details['project_type']})
+        """ add articles to the IproxArticle.queue for scraping """
+        for article in fpd_details['news']:
+            self.article.queue.put({'article': article, 'project_type': fpd_details['project_type']})
 
     def get_set_project_details(self, item, project_type):
         """ Get and set project details """
@@ -102,7 +102,7 @@ class IproxIngestion:
         updated = new = failed = deleted = 0
         for item in fpa.parsed_data:
             # DEBUG: Set title for page you'd like to debug...
-            # if item['identifier'] != '1145386':
+            # if item['identifier'] != '1056019':
             #     continue
             print('Parsing ', end='')
             print(f'https://amsterdam.nl/@{item["identifier"]}/page/?AppIdt=app-pagetype&reload=true ', end='')
@@ -159,8 +159,8 @@ class IproxIngestion:
                 failed += 1
 
         # Fetch news
-        print('Fetching news items', flush=True)
-        self.news.run(scraper_report=self.scraper_report)
+        print('Fetching articles', flush=True)
+        self.article.run(scraper_report=self.scraper_report)
 
         # Return scraper report
         report = {

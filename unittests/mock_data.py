@@ -312,7 +312,7 @@ class TestData:
                         'sources': {
                             '220px': {'url': 'https://www.amsterdam.nl/publish/pages/000000/220px/mock.jpg', 'image_id': '3f4a4ec3bc10f60d3aa2eac9b742c8ec', 'filename': 'mock.jpg', 'description': ''},
                             'orig': {'url': 'https://www.amsterdam.nl/publish/pages/000000/mock.jpg', 'image_id': 'e51353040e4c049559c975ce6a650947', 'filename': 'mock.jpg', 'description': ''}}}],
-            'news': [{'identifier': '000000-news', 'project_identifier': 'identifier', 'url': 'https://amsterdam.nl/@000000-news/page/?AppIdt=app-pagetype&reload=true', 'project_title': ''}],
+            'news': [{'identifier': '000000-news', 'project_identifier': 'identifier', 'url': 'https://amsterdam.nl/@000000-news/page/?AppIdt=app-pagetype&reload=true', 'project_title': '', 'type': 'news'}],
             'page_id': -1,
             'title': '', 'subtitle': None,
             'rel_url': 'mock/mock', 'url': 'https://mock/mock/mock/'
