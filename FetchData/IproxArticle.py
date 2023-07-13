@@ -10,8 +10,8 @@ from GenericFunctions.TextSanitizers import TextSanitizers
 from FetchData.IproxRecursion import IproxRecursion
 
 
-class IproxNews:
-    """ Fetch news items from Iprox. News items feeds are read from a queue and processed
+class IproxArticle:
+    """ Fetch article items from Iprox. News items feeds are read from a queue and processed
 
         a queued news item looks like:
 
@@ -111,26 +111,26 @@ class IproxNews:
         iprox = IproxRecursion()
         return iprox.filter(data, [], targets=self.page_targets)
 
-    def scraper(self, news_item):
+    def scraper(self, article):
         """ Actual scraper logic, create object, scrape data, populate object, save """
-        raw_data = self.get_data(news_item.get('url'))
+        raw_data = self.get_data(article.get('url'))
         if raw_data is None or raw_data == {}:
             return {}
 
-        news_item_data = self.skeleton()
+        article_data = self.skeleton()
 
         page = raw_data.get('item', {}).get('page', {})
         date = page.get('CorDtm')
 
-        news_item_data['publication_date'] = '{year}-{month}-{day}'.format(year=date[0:4],
+        article_data['publication_date'] = '{year}-{month}-{day}'.format(year=date[0:4],
                                                                            month=date[4:6],
                                                                            day=date[6:8])
 
 
-        news_item_data['identifier'] = news_item.get('identifier')
-        news_item_data['project_identifier'] = news_item.get('project_identifier')
-        news_item_data['url'] = news_item.get('url')
-        news_item_data['title'] = page.get('title', '')
+        article_data['identifier'] = article.get('identifier')
+        article_data['project_identifier'] = article.get('project_identifier')
+        article_data['url'] = article.get('url')
+        article_data['title'] = page.get('title', '')
 
         filtered_results = self.filter_results(page.get('cluster', []))
 
@@ -140,12 +140,12 @@ class IproxNews:
                     # Get summary for this news item
                     if filtered_results[i]['Gegevens'][j].get('Nam') == 'Samenvatting':
                         html = filtered_results[i]['Gegevens'][j].get('Txt')
-                        news_item_data['body']['summary']['text'] = self.sanitizer.strip_html(html)
-                        news_item_data['body']['summary']['html'] = self.sanitizer.rewrite_html(html)
+                        article_data['body']['summary']['text'] = self.sanitizer.strip_html(html)
+                        article_data['body']['summary']['html'] = self.sanitizer.rewrite_html(html)
 
                     if filtered_results[i]['Gegevens'][j].get('Nam') == 'Brondatum':
                         date = filtered_results[i]['Gegevens'][j].get('Dtm', '')
-                        news_item_data['publication_date'] = '{year}-{month}-{day}'.format(year=date[0:4],
+                        article_data['publication_date'] = '{year}-{month}-{day}'.format(year=date[0:4],
                                                                                            month=date[4:6],
                                                                                            day=date[6:8])
 
@@ -176,21 +176,21 @@ class IproxNews:
                                 'filename': filename,
                                 'description': ''
                             }
-                        news_item_data['images'].append(image)
+                        article_data['images'].append(image)
 
             if filtered_results[i].get('Inhoud', None) is not None:
                 for j in range(0, len(filtered_results[i]['Inhoud']), 1):
                     # Get preface for this news item
                     if filtered_results[i]['Inhoud'][j].get('Nam') == 'Inleiding':
                         html = filtered_results[i]['Inhoud'][j].get('Txt')
-                        news_item_data['body']['preface']['text'] = self.sanitizer.strip_html(html)
-                        news_item_data['body']['preface']['html'] = self.sanitizer.rewrite_html(html)
+                        article_data['body']['preface']['text'] = self.sanitizer.strip_html(html)
+                        article_data['body']['preface']['html'] = self.sanitizer.rewrite_html(html)
 
                     # Get content for this news item
                     if filtered_results[i]['Inhoud'][j].get('Nam') == 'Tekst':
                         html = filtered_results[i]['Inhoud'][j].get('Txt')
-                        news_item_data['body']['content']['text'] = self.sanitizer.strip_html(html)
-                        news_item_data['body']['content']['html'] = self.sanitizer.rewrite_html(html)
+                        article_data['body']['content']['text'] = self.sanitizer.strip_html(html)
+                        article_data['body']['content']['html'] = self.sanitizer.rewrite_html(html)
 
                         # Get additional images for this news item
                         for asset in filtered_results[i]['Inhoud'][j].get('asset', {}):
@@ -209,7 +209,7 @@ class IproxNews:
                                         'description': ''}
                                 }
                             }
-                            news_item_data['images'].append(image)
+                            article_data['images'].append(image)
 
             # Get assets for this news item
             if filtered_results[i].get('Verwijzing', None) is not None:
@@ -220,7 +220,7 @@ class IproxNews:
                     mime_type = 'application/{mime_type}'.format(mime_type=source.get('FilNam', '').split('.')[-1])
 
                     self.get_set_asset(identifier, mime_type, url)
-                    news_item_data['assets'].append({
+                    article_data['assets'].append({
                         'identifier': identifier,
                         'mime_type': mime_type,
                         'url': url,
@@ -228,16 +228,16 @@ class IproxNews:
                         'filename': source.get('FilNam', '')
                     })
 
-        return news_item_data
+        return article_data
 
-    def save_news_item(self, news_item_data, message):
+    def save_article(self, article_data, message):
         """ Post data to backend server """
-        url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/news'
-        response = requests.post(url, headers=self.headers, json=news_item_data, timeout=3600)
+        url = f'http://{self.backend_host}:{self.backend_port}{self.base_path}/article'
+        response = requests.post(url, headers=self.headers, json=article_data, timeout=3600)
         scraper_result = {
-            'url': f'https://amsterdam.nl/@{news_item_data["identifier"]}/page/',
-            'title': news_item_data['title'],
-            'publication_date': news_item_data['publication_date'],
+            'url': f'https://amsterdam.nl/@{article_data["identifier"]}/page/',
+            'title': article_data['title'],
+            'publication_date': article_data['publication_date'],
         }
         if response.status_code != 200:
             self.logger.error(response.text)
@@ -248,18 +248,19 @@ class IproxNews:
             print(message + f' {response_json["result"]}', flush=True)
             scraper_result['ingestion'] = 'successful'
 
-        self.scraper_report[news_item_data['project_identifier']]['news'].append(scraper_result)
+        self.scraper_report[article_data['project_identifier']]['news'].append(scraper_result)
 
     def run(self, scraper_report=dict):
         """ Keep getting jobs from a queue until the queue is empty. Scrape each item from the queue """
         self.scraper_report = scraper_report
         while not self.queue.empty():
-            # Get queued news_items and scrape data
+            # Get queued 'article' and scrape data
             job = self.queue.get()
-            news_item_data = self.scraper(job['news_item'])
-            message = f'Parsing News: {job["news_item"]["project_title"]} ' \
-                      f'{news_item_data.get("publication_date", "no publication date")}'
+            article_data = self.scraper(job['article'])
+            message = f'Parsing article (type: {job["article"]["type"]}): {job["article"]["project_title"]} ' \
+                      f'{article_data.get("publication_date", "no publication date")}'
 
-            if news_item_data:  # Check if news_item_data is not an empty dict.
-                news_item_data['project_type'] = job['project_type']
-                self.save_news_item(news_item_data, message)
+            if article_data:  # Check if article_data is not an empty dict.
+                article_data['project_type'] = job['project_type']
+                article_data['type'] = job['article']['type']
+                self.save_article(article_data, message)

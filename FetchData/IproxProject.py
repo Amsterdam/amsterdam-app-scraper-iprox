@@ -218,10 +218,10 @@ class IproxProject:
                     self.get_timeline(url)
 
                 if set_news is True and url != '':
-                    self.get_news_items(url)
+                    self.get_article_item(url, _type='news')
 
                 if set_work is True and url != '':
-                    self.get_work_items(url)
+                    self.get_article_item(url, _type='work')
 
             # Set Coordinates (if available).
             # Note: EPSG:4326 is an identifier of WGS84. WGS84 comprises a standard coordinate frame for the Earth
@@ -455,60 +455,37 @@ class IproxProject:
     #
     #
     #
-    # NEWS-BEGIN
+    # ARTICLE-BEGIN
     #
 
-    def set_news_item(self, data):
+    def set_article_item(self, data, _type=None):
         """ Add scraped item to dict """
         url = f'https://amsterdam.nl/@{data.get("itmidt")}/page/?AppIdt=app-pagetype&reload=true'
         item = {
             'identifier': data.get('itmidt'),
             'project_identifier': self.identifier,
             'url': url,
-            'project_title': self.project_title
+            'project_title': self.project_title,
+            'type': _type
         }
         result = requests.get(url, timeout=10)
         if result.status_code == 200:
             self.details['news'].append(item)
 
-    def get_news_items(self, url):
+    def get_article_item(self, url, _type=None):
         """ Get news item from iprox """
         try:
             result = requests.get('{url}?new_json=true'.format(url=url), timeout=10)
             raw_data = result.json()
-            self.logger.info(f'\tFound news {len(raw_data)} item(s): {url}?new_json=true')
+            self.logger.info(f'\tFound article {len(raw_data)} item(s): {url}?new_json=true')
             if isinstance(raw_data, list) and len(raw_data) > 0:
                 for i in range(0, len(raw_data), 1):
-                    self.set_news_item(raw_data[i])
+                    self.set_article_item(raw_data[i], _type=_type)
         except Exception as error:
-            self.logger.error(f'\tfailed fetching news from data: {self.url} {error}')
+            self.logger.error(f'\tfailed fetching article from data: {self.url} {error}')
 
     #
-    # NEWS-END
-    #
-
-    #
-    # WORK begin
-    #
-
-    def get_work_items(self, url):
-        """ Get news item from iprox """
-        try:
-            self.logger.info('\tFound work item: {url}?new_json=true'.format(url=url))
-            result = requests.get('{url}?new_json=true'.format(url=url), timeout=10)
-            raw_data = result.json()
-            if isinstance(raw_data, list) and len(raw_data) > 0:
-                for i in range(0, len(raw_data), 1):
-                    self.details['body']['work'].append({
-                        'text': TextSanitizers.strip_html(raw_data[i].get('content')),
-                        'html': raw_data[i].get('content'),
-                        'title': raw_data[i].get('title')
-                    })
-        except Exception as error:
-            self.logger.error(f'\tfailed fetching work from data: {self.url} {error}')
-
-    #
-    # WORK-END
+    # ARTICLE-END
     #
 
     def set_geo_data(self, json_data):
